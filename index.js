@@ -1,16 +1,15 @@
-const express = require('express');
+const express = require("express");
+const UserAuthRouter = require("./src/routes/AuthRouter");
+const dbConnect = require("./src/lib/connection");
+
 const app = express();
-const port = 3000;
-
-// Middleware to parse JSON bodies
 app.use(express.json());
+require("dotenv").config();
 
-// Route for the root URL
-app.get('/', (req, res) => {
-  res.send('Welcome to Koinet Media !');
-});
+//routes
+app.use("/user", UserAuthRouter);
 
-// Start the server
-app.listen(port, () => {
-  console.log(`Server is running at http://localhost:${port}`);
+dbConnect();
+app.listen(4000, () => {
+  console.log("http://localhost:4000");
 });
