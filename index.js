@@ -7,7 +7,7 @@ app.use(express.json());
 
 // Route for the root URL
 app.get('/', (req, res) => {
-  res.send('Hello World!');
+  res.send('Welcome to Koinet Media !');
 });
 
 // Start the server
