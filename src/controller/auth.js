@@ -143,8 +143,48 @@ exports.logout = async (req, res) => {
   }
 };
 
+// exports.sendOtp = async (req, res) => {
+//   const { email } = req.body;
+//   try {
+//     const existingUser = await User.findOne({ email });
+//     if (!existingUser) {
+//       return res.status(400).send({ message: "User not found" });
+//     }
+
+//     const otp = crypto.randomInt(100000, 999999).toString();
+//     const expiresIn = new Date(Date.now() + 10 * 60 * 1000);
+
+//     existingUser.otp = otp;
+//     existingUser.otpExpires = expiresIn;
+//     await existingUser.save();
+
+//     const mailOptions = {
+//       from: process.env.EMAIL_USER,
+//       to: email,
+//       subject: "Your OTP Code",
+//       text: `Your OTP code is ${otp}`,
+//     };
+
+//     transporter.sendMail(mailOptions, (error, info) => {
+//       if (error) {
+//         console.error("Error sending OTP email:", error);
+//         return res
+//           .status(500)
+//           .send({ message: "Error sending OTP email", error });
+//       } else {
+//         console.log("Email sent: " + info.response);
+//         return res.status(200).send({ message: "OTP sent successfully" });
+//       }
+//     });
+//   } catch (error) {
+//     console.error("Error during OTP generation:", error);
+//     return res.status(500).send({ message: "Error sending OTP", error });
+//   }
+// };
+
 exports.sendOtp = async (req, res) => {
   const { email } = req.body;
+
   try {
     const existingUser = await User.findOne({ email });
     if (!existingUser) {
@@ -165,22 +205,23 @@ exports.sendOtp = async (req, res) => {
       text: `Your OTP code is ${otp}`,
     };
 
-    transporter.sendMail(mailOptions, (error, info) => {
-      if (error) {
-        console.error("Error sending OTP email:", error);
-        return res
-          .status(500)
-          .send({ message: "Error sending OTP email", error });
-      } else {
+    // Use a promise-based approach for sending email
+    transporter.sendMail(mailOptions)
+      .then(info => {
         console.log("Email sent: " + info.response);
         return res.status(200).send({ message: "OTP sent successfully" });
-      }
-    });
+      })
+      .catch(error => {
+        console.error("Error sending OTP email:", error);
+        return res.status(500).send({ message: "Error sending OTP email", error });
+      });
+
   } catch (error) {
     console.error("Error during OTP generation:", error);
     return res.status(500).send({ message: "Error sending OTP", error });
   }
 };
+
 
 // exports.verifyOtp = async (req, res) => {
 //   const { email, otp } = req.body;
