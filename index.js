@@ -16,6 +16,6 @@ app.use(cors({
 app.use("/user", UserAuthRouter);
 
 dbConnect();
-app.listen(4000, () => {
+app.listen(process.env.PORT, () => {
   console.log("http://localhost:4000");
 });
