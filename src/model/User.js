@@ -14,18 +14,13 @@ const UserSchema = new mongoose.Schema(
       trim: true,
       unique: true,
     },
-    mobile:{
+    mobile: {
       type: Number,
       required: true,
-      trim: true
+      trim: true,
     },
     otp: String, 
-    otpExpires: Date ,
-    address:{
-      type:String,
-      required: true,
-      
-    },
+    otpExpires: Date,
     password: {
       type: String,
       required: true,
@@ -33,6 +28,11 @@ const UserSchema = new mongoose.Schema(
     },
     picture: {
       type: String,
+    },
+    role: {
+      type: String,
+      enum: ['admin', 'user', 'supervisor', 'oxmanager', 'agent', 'client', 'quality', 'delivery'], // Expanded roles
+      default: 'user',
     },
   },
   { timestamps: true }

@@ -20,7 +20,7 @@ const transporter = nodemailer.createTransport({
 });
 
 exports.signup = async (req, res) => {
-  const { username, email, password, address, mobile } = req.body;
+  const { firstName, lastName, email, password, phone, role } = req.body;
   try {
     const existingUser = await User.findOne({ email });
     if (existingUser) {
@@ -29,11 +29,11 @@ exports.signup = async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
     const user = await User.create({
-      username,
+      username: `${firstName} ${lastName}`, // You can concatenate first and last names for username or adjust as needed
       email,
       password: hashedPassword,
-      address,
-      mobile,
+      mobile: phone, // Use phone for mobile
+      role, // Include role here
     });
     return res.status(201).send({ user });
   } catch (error) {
@@ -41,6 +41,7 @@ exports.signup = async (req, res) => {
     return res.status(500).send({ message: "Error signing up!", error });
   }
 };
+
 
 // exports.login = async (req, res) => {
 //   const { email, password } = req.body;
@@ -151,7 +152,7 @@ exports.sendOtp = async (req, res) => {
     }
 
     const otp = crypto.randomInt(100000, 999999).toString();
-    const expiresIn = new Date(Date.now() + 10 * 60 * 1000); 
+    const expiresIn = new Date(Date.now() + 10 * 60 * 1000);
 
     existingUser.otp = otp;
     existingUser.otpExpires = expiresIn;
