@@ -1,22 +1,22 @@
 const User = require("../model/User");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
-const crypto = require('crypto');
-const nodemailer = require('nodemailer');
-require('dotenv').config(); 
+const crypto = require("crypto");
+const nodemailer = require("nodemailer");
+require("dotenv").config();
 
 // Configure nodemailer
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
+  service: "gmail",
   auth: {
     user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS
+    pass: process.env.EMAIL_PASS,
   },
   tls: {
-    rejectUnauthorized: false
+    rejectUnauthorized: false,
   },
   debug: true, // Enable debug output
-  logger: true // Log information
+  logger: true, // Log information
 });
 
 exports.signup = async (req, res) => {
@@ -42,6 +42,45 @@ exports.signup = async (req, res) => {
   }
 };
 
+// exports.login = async (req, res) => {
+//   const { email, password } = req.body;
+//   try {
+//     const existingUser = await User.findOne({ email: email });
+
+//     if (!existingUser) {
+//       return res.status(400).send({ message: "User not found" });
+//     }
+
+//     const passwordMatched = await bcrypt.compare(
+//       password,
+//       existingUser.password
+//     );
+
+//     if (!passwordMatched) {
+//       return res.status(400).send({ message: "Wrong password" });
+//     }
+
+//     const jwtToken = jwt.sign(
+//       {
+//         _id: existingUser._id,
+//         email: existingUser.email,
+//       },
+//       process.env.JWT_KEY,
+//       { expiresIn: '1d' } // Token expires in 1 day
+//     );
+
+//     res.cookie("token", jwtToken, {
+//       path: "/",
+//       expires: new Date(Date.now() + 1000 * 60 * 60 * 24), // 1 day
+//       httpOnly: true,
+//       sameSite: "lax",
+//     });
+
+//     return res.status(200).send({ message: "Login successful", token: jwtToken });
+//   } catch (error) {
+//     return res.status(500).send({ message: "Error logging in!", error: error });
+//   }
+// };
 exports.login = async (req, res) => {
   const { email, password } = req.body;
   try {
@@ -60,23 +99,35 @@ exports.login = async (req, res) => {
       return res.status(400).send({ message: "Wrong password" });
     }
 
-    const jwtToken = jwt.sign(
-      {
-        _id: existingUser._id,
-        email: existingUser.email,
-      },
-      process.env.JWT_KEY,
-      { expiresIn: '1d' } // Token expires in 1 day
-    );
+    // Generate OTP
+    const otp = crypto.randomInt(100000, 999999).toString(); // Generate a 6-digit OTP
+    const expiresIn = new Date(Date.now() + 10 * 60 * 1000); // OTP expires in 10 minutes
 
-    res.cookie("token", jwtToken, {
-      path: "/",
-      expires: new Date(Date.now() + 1000 * 60 * 60 * 24), // 1 day
-      httpOnly: true,
-      sameSite: "lax",
+    existingUser.otp = otp;
+    existingUser.otpExpires = expiresIn;
+    await existingUser.save();
+
+    // Send OTP email
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: "amolspatil018@gamil.com",
+      subject: "Your OTP Code",
+      text: `Your OTP code is ${otp}`,
+    };
+
+    transporter.sendMail(mailOptions, (error, info) => {
+      if (error) {
+        console.error("Error sending OTP email:", error);
+        return res
+          .status(500)
+          .send({ message: "Error sending OTP email", error });
+      } else {
+        console.log("Email sent: " + info.response);
+        return res
+          .status(200)
+          .send({ message: "OTP sent successfully", email });
+      }
     });
-
-    return res.status(200).send({ message: "Login successful", token: jwtToken });
   } catch (error) {
     return res.status(500).send({ message: "Error logging in!", error: error });
   }
@@ -99,8 +150,8 @@ exports.sendOtp = async (req, res) => {
       return res.status(400).send({ message: "User not found" });
     }
 
-    const otp = crypto.randomInt(100000, 999999).toString(); // Generate a 6-digit OTP
-    const expiresIn = new Date(Date.now() + 10 * 60 * 1000); // OTP expires in 10 minutes
+    const otp = crypto.randomInt(100000, 999999).toString();
+    const expiresIn = new Date(Date.now() + 10 * 60 * 1000); 
 
     existingUser.otp = otp;
     existingUser.otpExpires = expiresIn;
@@ -109,17 +160,19 @@ exports.sendOtp = async (req, res) => {
     const mailOptions = {
       from: process.env.EMAIL_USER,
       to: email,
-      subject: 'Your OTP Code',
-      text: `Your OTP code is ${otp}`
+      subject: "Your OTP Code",
+      text: `Your OTP code is ${otp}`,
     };
 
     transporter.sendMail(mailOptions, (error, info) => {
       if (error) {
         console.error("Error sending OTP email:", error);
-        return res.status(500).send({ message: "Error sending OTP email", error });
+        return res
+          .status(500)
+          .send({ message: "Error sending OTP email", error });
       } else {
-        console.log('Email sent: ' + info.response);
-        return res.status(200).send({ message: 'OTP sent successfully' });
+        console.log("Email sent: " + info.response);
+        return res.status(200).send({ message: "OTP sent successfully" });
       }
     });
   } catch (error) {
@@ -128,16 +181,56 @@ exports.sendOtp = async (req, res) => {
   }
 };
 
+// exports.verifyOtp = async (req, res) => {
+//   const { email, otp } = req.body;
+//   try {
+//     const existingUser = await User.findOne({ email });
+
+//     if (!existingUser) {
+//       return res.status(400).send({ message: "User not found" });
+//     }
+
+//     if (existingUser.otp !== otp) {
+//       return res.status(400).send({ message: "Invalid OTP" });
+//     }
+
+//     if (existingUser.otpExpires < Date.now()) {
+//       return res.status(400).send({ message: "OTP has expired" });
+//     }
+
+//     // Clear OTP fields after successful verification
+//     existingUser.otp = null;
+//     existingUser.otpExpires = null;
+//     await existingUser.save();
+
+//     const jwtToken = jwt.sign(
+//       {
+//         _id: existingUser._id,
+//         email: existingUser.email,
+//       },
+//       process.env.JWT_KEY,
+//       { expiresIn: '1d' } // Token expires in 1 day
+//     );
+
+//     res.cookie("token", jwtToken, {
+//       path: "/",
+//       expires: new Date(Date.now() + 1000 * 60 * 60 * 24), // 1 day
+//       httpOnly: true,
+//       sameSite: "lax",
+//     });
+
+//     return res.status(200).send({ message: 'OTP verified successfully', jwtToken });
+//   } catch (error) {
+//     console.error("Error during OTP verification:", error);
+//     return res.status(500).send({ message: "Error verifying OTP", error });
+//   }
+// };
 exports.verifyOtp = async (req, res) => {
-  const { email, otp } = req.body;
+  const { otp } = req.body;
   try {
-    const existingUser = await User.findOne({ email });
+    const existingUser = await User.findOne({ otp });
 
     if (!existingUser) {
-      return res.status(400).send({ message: "User not found" });
-    }
-
-    if (existingUser.otp !== otp) {
       return res.status(400).send({ message: "Invalid OTP" });
     }
 
@@ -156,17 +249,19 @@ exports.verifyOtp = async (req, res) => {
         email: existingUser.email,
       },
       process.env.JWT_KEY,
-      { expiresIn: '1d' } // Token expires in 1 day
+      { expiresIn: "1d" } // Token expires in 1 day
     );
 
     res.cookie("token", jwtToken, {
       path: "/",
-      expires: new Date(Date.now() + 1000 * 60 * 60 * 24), // 1 day
+      expires: new Date(Date.now() + 1000 * 60 * 60 * 24),
       httpOnly: true,
       sameSite: "lax",
     });
 
-    return res.status(200).send({ message: 'OTP verified successfully', jwtToken });
+    return res
+      .status(200)
+      .send({ message: "OTP verified successfully", token: jwtToken });
   } catch (error) {
     console.error("Error during OTP verification:", error);
     return res.status(500).send({ message: "Error verifying OTP", error });
