@@ -234,3 +234,56 @@ exports.getAllUsers = async (req, res) => {
   }
 };
 
+exports.viewUserById = async (req, res) => {
+  // Validate user ID
+  if (!res) {
+    return res.status(400).send({ message: "Invalid user ID", });
+  }
+
+  const { id } = req.params;
+
+  try {
+    const user = await AccessUser.findById(id).select('-password'); // Exclude password from the response
+    if (!user) {
+      return res.status(404).send({ message: "User not found" });
+    }
+    return res.status(200).send({ user });
+  } catch (error) {
+    return handleError(res, error, "Error fetching user details");
+  }
+};
+
+exports.updateUser = async (req, res) => {
+  const { id } = req.params;
+  const { fullname, mobile, password, date_of_hiring, designation, supervisor, salary, shift, other_designation } = req.body;
+
+  try {
+    const existingUser = await AccessUser.findById(id);
+    if (!existingUser) {
+      return res.status(404).send({ message: "User not found!" });
+    }
+
+    if (password) {
+      const salt = await bcrypt.genSalt(10);
+      existingUser.password = await bcrypt.hash(password, salt);
+    }
+
+    existingUser.fullname = fullname || existingUser.fullname;
+    existingUser.mobile = mobile || existingUser.mobile;
+    existingUser.date_of_hiring = date_of_hiring || existingUser.date_of_hiring;
+    existingUser.designation = designation || existingUser.designation;
+    existingUser.supervisor = supervisor || existingUser.supervisor;
+    existingUser.salary = salary || existingUser.salary;
+    existingUser.shift = shift || existingUser.shift;
+    existingUser.other_designation = other_designation || existingUser.other_designation;
+
+    const updatedUser = await existingUser.save();
+
+    return res.status(200).send({ user: updatedUser });
+  } catch (error) {
+    console.error("Error during user update:", error);
+    return res.status(500).send({ message: "Error updating user!", error });
+  }
+};
+
+

@@ -17,5 +17,5 @@ app.use("/user", UserAuthRouter);
 
 dbConnect();
 app.listen(process.env.PORT, () => {
-  console.log(process.env.PORT);
+  console.log("localhost:",process.env.PORT);
 });
