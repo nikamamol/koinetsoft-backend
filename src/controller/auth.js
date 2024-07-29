@@ -233,3 +233,4 @@ exports.getAllUsers = async (req, res) => {
     return res.status(500).send({ message: "Error fetching users!", error });
   }
 };
+
