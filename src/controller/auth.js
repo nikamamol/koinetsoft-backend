@@ -4,6 +4,7 @@ const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 const nodemailer = require("nodemailer");
 const AccessUser = require("../model/AccessUser");
+const Vendor = require("../model/InviteVendor");
 require("dotenv").config();
 
 // Configure nodemailer
@@ -42,7 +43,6 @@ exports.signup = async (req, res) => {
     return res.status(500).send({ message: "Error signing up!", error });
   }
 };
-
 
 exports.login = async (req, res) => {
   const { email, password } = req.body;
@@ -105,7 +105,6 @@ exports.logout = async (req, res) => {
   }
 };
 
-
 exports.sendOtp = async (req, res) => {
   const { email } = req.body;
 
@@ -130,22 +129,23 @@ exports.sendOtp = async (req, res) => {
     };
 
     // Use a promise-based approach for sending email
-    transporter.sendMail(mailOptions)
-      .then(info => {
+    transporter
+      .sendMail(mailOptions)
+      .then((info) => {
         console.log("Email sent: " + info.response);
         return res.status(200).send({ message: "OTP sent successfully" });
       })
-      .catch(error => {
+      .catch((error) => {
         console.error("Error sending OTP email:", error);
-        return res.status(500).send({ message: "Error sending OTP email", error });
+        return res
+          .status(500)
+          .send({ message: "Error sending OTP email", error });
       });
-
   } catch (error) {
     console.error("Error during OTP generation:", error);
     return res.status(500).send({ message: "Error sending OTP", error });
   }
 };
-
 
 exports.verifyOtp = async (req, res) => {
   const { otp } = req.body;
@@ -190,9 +190,20 @@ exports.verifyOtp = async (req, res) => {
   }
 };
 
-
+// user section on dashboard
 exports.accessuser = async (req, res) => {
-  const { fullname, mobile, email, password, date_of_hiring, designation, supervisor, salary, shift, other_designation } = req.body;
+  const {
+    fullname,
+    mobile,
+    email,
+    password,
+    date_of_hiring,
+    designation,
+    supervisor,
+    salary,
+    shift,
+    other_designation,
+  } = req.body;
 
   try {
     const existingUser = await AccessUser.findOne({ email });
@@ -223,7 +234,6 @@ exports.accessuser = async (req, res) => {
   }
 };
 
-
 exports.getAllUsers = async (req, res) => {
   try {
     const users = await AccessUser.find(); // Retrieve all users
@@ -237,13 +247,13 @@ exports.getAllUsers = async (req, res) => {
 exports.viewUserById = async (req, res) => {
   // Validate user ID
   if (!res) {
-    return res.status(400).send({ message: "Invalid user ID", });
+    return res.status(400).send({ message: "Invalid user ID" });
   }
 
   const { id } = req.params;
 
   try {
-    const user = await AccessUser.findById(id).select('-password'); // Exclude password from the response
+    const user = await AccessUser.findById(id).select("-password"); // Exclude password from the response
     if (!user) {
       return res.status(404).send({ message: "User not found" });
     }
@@ -255,7 +265,17 @@ exports.viewUserById = async (req, res) => {
 
 exports.updateUser = async (req, res) => {
   const { id } = req.params;
-  const { fullname, mobile, password, date_of_hiring, designation, supervisor, salary, shift, other_designation } = req.body;
+  const {
+    fullname,
+    mobile,
+    password,
+    date_of_hiring,
+    designation,
+    supervisor,
+    salary,
+    shift,
+    other_designation,
+  } = req.body;
 
   try {
     const existingUser = await AccessUser.findById(id);
@@ -275,7 +295,8 @@ exports.updateUser = async (req, res) => {
     existingUser.supervisor = supervisor || existingUser.supervisor;
     existingUser.salary = salary || existingUser.salary;
     existingUser.shift = shift || existingUser.shift;
-    existingUser.other_designation = other_designation || existingUser.other_designation;
+    existingUser.other_designation =
+      other_designation || existingUser.other_designation;
 
     const updatedUser = await existingUser.save();
 
@@ -286,4 +307,126 @@ exports.updateUser = async (req, res) => {
   }
 };
 
+exports.updateUser = async (req, res) => {
+  const { id } = req.params;
+  const {
+    fullname,
+    mobile,
+    password,
+    date_of_hiring,
+    designation,
+    supervisor,
+    salary,
+    shift,
+    other_designation,
+  } = req.body;
 
+  try {
+    // Find the existing user by ID
+    const existingUser = await AccessUser.findById(id);
+    if (!existingUser) {
+      return res.status(404).send({ message: "User not found!" });
+    }
+
+    // If a new password is provided, hash it before saving
+    if (password) {
+      const salt = await bcrypt.genSalt(10);
+      existingUser.password = await bcrypt.hash(password, salt);
+    }
+
+    // Update the user details
+    existingUser.fullname = fullname || existingUser.fullname;
+    existingUser.mobile = mobile || existingUser.mobile;
+    existingUser.date_of_hiring = date_of_hiring || existingUser.date_of_hiring;
+    existingUser.designation = designation || existingUser.designation;
+    existingUser.supervisor = supervisor || existingUser.supervisor;
+    existingUser.salary = salary || existingUser.salary;
+    existingUser.shift = shift || existingUser.shift;
+    existingUser.other_designation =
+      other_designation || existingUser.other_designation;
+
+    // Save the updated user data
+    const updatedUser = await existingUser.save();
+
+    // Return the updated user
+    return res.status(200).send({ user: updatedUser });
+  } catch (error) {
+    console.error("Error during user update:", error);
+    return res.status(500).send({ message: "Error updating user!", error });
+  }
+};
+
+exports.deleteUserById = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const user = await AccessUser.findByIdAndDelete(id);
+    if (!user) {
+      return res.status(404).send({ message: "User not found" });
+    }
+    return res.status(200).send({ message: "User deleted successfully" });
+  } catch (error) {
+    return handleError(res, error, "Error deleting user");
+  }
+};
+
+exports.inviteagency = async (req, res) => {
+  const {
+    company_name,
+    company_type,
+    vendor_profile,
+    agency_id,
+    country,
+    state,
+    city,
+    pincode,
+    address,
+    primary_first_name,
+    primary_last_name,
+    primary_phone_no,
+    primary_email,
+    primary_designation,
+    password,
+    secondary_first_name,
+    secondary_last_name,
+    secondary_phone_no,
+    secondary_email,
+    secondary_designation,
+  } = req.body;
+
+  // Optional: Add validation with Joi here if needed
+
+  try {
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    const newVendor = new Vendor({
+      company_name,
+      company_type,
+      vendor_profile,
+      agency_id,
+      country,
+      state,
+      city,
+      pincode,
+      address,
+      primary_first_name,
+      primary_last_name,
+      primary_phone_no,
+      primary_email,
+      primary_designation,
+      password: hashedPassword,
+      secondary_first_name,
+      secondary_last_name,
+      secondary_phone_no,
+      secondary_email,
+      secondary_designation,
+    });
+
+    await newVendor.save(); // Save the instance
+    res.status(201).json({ message: "Vendor added successfully!" });
+  } catch (error) {
+    console.error("Error adding vendor:", error);
+    res.status(500).json({ message: "Error adding vendor", error });
+  }
+};
