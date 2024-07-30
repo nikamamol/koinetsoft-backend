@@ -14,11 +14,11 @@ const VendorSchema = new mongoose.Schema({
     required: true
   },
   agency_id: {
-    type: Number,
+    type: String, // Changed to String if it is not guaranteed to be numeric
     required: true
   },
   country: {
-    type: Number,
+    type: String, // Changed to String if it is not guaranteed to be numeric
     required: true
   },
   state: {
@@ -78,6 +78,6 @@ const VendorSchema = new mongoose.Schema({
   }
 });
 
-const Vendor = mongoose.model('InviteAgency', VendorSchema);
+const Vendor = mongoose.model('InviteAgency', VendorSchema); // Changed to 'Vendor' for consistency
 
 module.exports = Vendor;

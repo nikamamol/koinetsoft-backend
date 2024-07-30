@@ -430,3 +430,148 @@ exports.inviteagency = async (req, res) => {
     res.status(500).json({ message: "Error adding vendor", error });
   }
 };
+
+exports.myAgencyData = async (req, res) => {
+  try {
+    const vendors = await Vendor.find(); // Retrieve all vendors from the database
+    res.status(200).json(vendors); // Send the vendors as a JSON response
+  } catch (error) {
+    console.error("Error fetching vendors:", error);
+    res.status(500).json({ message: "Error fetching vendors", error });
+  }
+};
+exports.viewAgencyById = async (req, res) => {
+  const { id } = req.params; // Agency ID to update
+  const {
+    company_name,
+    company_type,
+    vendor_profile,
+    country,
+    state,
+    city,
+    pincode,
+    address,
+    primary_first_name,
+    primary_last_name,
+    primary_phone_no,
+    primary_email,
+    primary_designation,
+    secondary_first_name,
+    secondary_last_name,
+    secondary_phone_no,
+    secondary_email,
+    secondary_designation,
+  } = req.body;
+
+  try {
+    const updateData = {
+      company_name,
+      company_type,
+      vendor_profile,
+      country,
+      state,
+      city,
+      pincode,
+      address,
+      primary_first_name,
+      primary_last_name,
+      primary_phone_no,
+      primary_email,
+      primary_designation,
+      secondary_first_name,
+      secondary_last_name,
+      secondary_phone_no,
+      secondary_email,
+      secondary_designation,
+    };
+
+    // Update the vendor details in the database
+    const updatedVendor = await Vendor.findByIdAndUpdate(id, updateData, { new: true });
+
+    if (!updatedVendor) {
+      return res.status(404).json({ message: "Vendor not found" });
+    }
+
+    res.status(200).json({ message: "View Vedor Details", updatedVendor });
+  } catch (error) {
+    console.error("Error view vendor:", error);
+    res.status(500).json({ message: "Error view vendor", error });
+  }
+};
+
+exports.updateAgency = async (req, res) => {
+  const { id } = req.params; // Agency ID to update
+  const {
+    company_name,
+    company_type,
+    vendor_profile,
+    country,
+    state,
+    city,
+    pincode,
+    address,
+    primary_first_name,
+    primary_last_name,
+    primary_phone_no,
+    primary_email,
+    primary_designation,
+    secondary_first_name,
+    secondary_last_name,
+    secondary_phone_no,
+    secondary_email,
+    secondary_designation,
+  } = req.body;
+
+  // Optional: Add validation with Joi here if needed
+  if (!id) {
+    return res.status(400).json({ message: "Invalid agency ID" });
+  }
+
+  try {
+    const updateData = {
+      company_name,
+      company_type,
+      vendor_profile,
+      country,
+      state,
+      city,
+      pincode,
+      address,
+      primary_first_name,
+      primary_last_name,
+      primary_phone_no,
+      primary_email,
+      primary_designation,
+      secondary_first_name,
+      secondary_last_name,
+      secondary_phone_no,
+      secondary_email,
+      secondary_designation,
+    };
+
+    // Update the vendor details in the database
+    const updatedVendor = await Vendor.findByIdAndUpdate(id, updateData, { new: true });
+
+    if (!updatedVendor) {
+      return res.status(404).json({ message: "Vendor not found" });
+    }
+
+    res.status(200).json({ message: "Vendor updated successfully", updatedVendor });
+  } catch (error) {
+    console.error("Error updating vendor:", error);
+    res.status(500).json({ message: "Error updating vendor", error });
+  }
+};
+exports.deleteAgencyById = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const user = await Vendor.findByIdAndDelete(id);
+    if (!user) {
+      return res.status(404).send({ message: "Vendor not found" });
+    }
+    return res.status(200).send({ message: "Vendor deleted successfully" });
+  } catch (error) {
+    return handleError(res, error, "Error deleting Vendor");
+  }
+};

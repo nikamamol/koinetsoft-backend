@@ -10,7 +10,11 @@ const {
   viewUserById,
   updateUser,
   deleteUserById,
-  inviteagency
+  inviteagency,
+  myAgencyData,
+  updateAgency,
+  viewAgencyById,
+  deleteAgencyById
 } = require("../controller/auth");
 
 const UserAuthRouter = express.Router();
@@ -28,5 +32,9 @@ UserAuthRouter.put('/updateuser/:id', updateUser);
 UserAuthRouter.delete('/deleteuser/:id', deleteUserById);
 // add agency
 UserAuthRouter.post('/invitagency', inviteagency);
+UserAuthRouter.get('/myagencies', myAgencyData);
+UserAuthRouter.get('/viewAgencyDetails/:id', viewAgencyById);
+UserAuthRouter.put('/updateAgency/:id', updateAgency);
+UserAuthRouter.delete('/deletevendor/:id', deleteAgencyById);
 
 module.exports = UserAuthRouter;
