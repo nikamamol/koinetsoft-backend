@@ -5,6 +5,7 @@ const crypto = require("crypto");
 const nodemailer = require("nodemailer");
 const AccessUser = require("../model/AccessUser");
 const Vendor = require("../model/InviteVendor");
+const Client = require("../model/AddClient");
 require("dotenv").config();
 
 // Configure nodemailer
@@ -562,6 +563,7 @@ exports.updateAgency = async (req, res) => {
     res.status(500).json({ message: "Error updating vendor", error });
   }
 };
+
 exports.deleteAgencyById = async (req, res) => {
   const { id } = req.params;
 
@@ -575,3 +577,53 @@ exports.deleteAgencyById = async (req, res) => {
     return handleError(res, error, "Error deleting Vendor");
   }
 };
+
+// billing
+// add client
+
+exports.addClient= async (req, res) => {
+  try {
+    const newClient = new Client(req.body);
+    await newClient.save();
+    res.status(201).send(newClient);
+  } catch (error) {
+    res.status(400).send(error.message);
+  }
+};
+// view client
+exports.viewClient = async (req, res) => {
+  try {
+    const clients = await Client.find();
+    res.status(200).send(clients);
+  } catch (error) {
+    res.status(400).send(error.message);
+  }
+};
+// view client details with id 
+exports.viewClientDetails = async (req, res) => {
+  try {
+    const client = await Client.findById(req.params.id);
+    res.status(200).send(client);
+  } catch (error) {
+    res.status(400).send(error.message);
+  }
+
+}
+// update client
+exports.updateClient = async (req, res) => {
+  try {
+    const updatedClient = await Client.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    res.status(200).send(updatedClient);
+  } catch (error) {
+    res.status(400).send(error.message);
+  }
+}
+exports.deleteClient = async (req, res) => {
+  try {
+    const deletedClient = await Client.findByIdAndDelete(req.params.id);
+    res.status(200).send(deletedClient);
+  } catch (error) {
+    res.status(400).send(error.message);
+  }
+
+}
