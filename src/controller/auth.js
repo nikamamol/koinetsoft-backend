@@ -1,4 +1,5 @@
 const User = require("../model/User");
+const uplaodCSV = require("../model/CsvData");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
@@ -6,6 +7,14 @@ const nodemailer = require("nodemailer");
 const AccessUser = require("../model/AccessUser");
 const Vendor = require("../model/InviteVendor");
 const Client = require("../model/AddClient");
+
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+const fastcsv = require('fast-csv');
+const CompanySchema = require("../model/CsvData");
+const CampaignSchema = require("../model/CampaignSchema");
+
 require("dotenv").config();
 
 // Configure nodemailer
@@ -627,3 +636,67 @@ exports.deleteClient = async (req, res) => {
   }
 
 }
+
+
+//upload csv file
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'uploads/'); // Destination folder
+  },
+  filename: (req, file, cb) => {
+    cb(null, Date.now() + path.extname(file.originalname)); // Unique filename
+  }
+});
+
+const upload = multer({ storage: storage }).any();
+
+exports.uploadCsv = [upload, async (req, res) => {
+  try {
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).send({ message: 'No file uploaded.' });
+    }
+
+    const file = req.files[0];
+
+    if (!file.filename || !file.originalname || !file.mimetype || !file.size || !file.path) {
+      return res.status(400).send({ message: 'Missing file metadata.' });
+    }
+
+    // Read file content if needed
+    let fileContent;
+    try {
+      fileContent = fs.readFileSync(file.path);
+    } catch (readError) {
+      console.error("Error reading file content:", readError);
+      return res.status(500).send({ message: 'Error reading file content', error: readError });
+    }
+
+    // Create a new document in the database
+    const newFile = new CompanySchema({
+      filename: file.filename,
+      originalname: file.originalname,
+      mimetype: file.mimetype,
+      size: file.size,
+      path: file.path,
+      content: fileContent // Store file content as binary
+    });
+
+    await newFile.save();
+
+    res.status(200).send({ message: 'File uploaded and stored successfully', file: newFile });
+  } catch (error) {
+    console.error("Error uploading or storing file:", error);
+    res.status(500).send({ message: 'Error uploading or storing file', error });
+  }
+}];
+
+// create campaign
+exports.createCampaign = async (req, res) => {
+  try {
+    const campaign = new CampaignSchema(req.body);
+    const savedCampaign = await campaign.save();
+    res.status(201).json(savedCampaign);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
