@@ -3,162 +3,187 @@ const mongoose = require('mongoose');
 const campaignSchema = new mongoose.Schema({
   clientSelect: {
     type: String,
-    required: true
+    required: false
   },
   campaignName: {
     type: String,
-    required: true
+    required: false
   },
   campaignCode: {
     type: String,
-    required: true
+    required: false
   },
   startDate: {
     type: Date,
-    required: true
+    required: false
   },
   endDate: {
     type: Date,
-    required: true
+    required: false
   },
   campaignType: {
     type: String,
-    required: true
+    required: false
   },
   campaignNature: {
     type: String,
-    required: true
+    required: false
   },
   target: {
     type: Number,
-    required: true
+    required: false
   },
   leadPerDay: {
     type: Number,
-    required: true
+    required: false
   },
   voiceLogRequired: {
     type: String,
-    required: true
+    required: false
   },
   billingDay: {
     type: Number,
-    required: true
+    required: false
   },
   cpl: {
     type: Number,
-    required: true
+    required: false
   },
   template: {
     type: String,
-    required: true
+    required: false
+  },
+  supervisor: {
+    type: String,
+    required: false
+  },
+  supervisorTarget: {
+    type: Number,
+    required: false
   },
   name: {
     type: String,
-    required: true
+    required: false
   },
   originalName: {
     type: String,
-    required: true
+    required: false
   },
   mimeType: {
     type: String,
-    required: true
+    required: false
   },
   size: {
     type: Number,
-    required: true
+    required: false
   },
   path: {
     type: String,
-    required: true
+    required: false
   },
   revenue: {
-    type: Number,
-    required: true
+    type: [String], // Changed to an array of strings
+    default: [],
+    required: false
   },
   companySize: {
     type: Number,
-    required: true
+    required: false
   },
   jobTitle: {
     type: String,
-    required: true
+    required: false
   },
   geo: {
     type: String,
-    required: true
+    required: false
   },
   industry: {
     type: String,
-    required: true
+    required: false
   },
   note: {
     type: String,
-    required: true
+    required: false
   },
   suppressionList: {
-    type: String // This can be a URL or file path
+    type: String, // This can be a URL or file path
+    required: false
   },
   abmList: {
-    type: String // This can be a URL or file path
+    type: String, // This can be a URL or file path
+    required: false
   },
   contactsPerCampaign: {
     type: Boolean,
-    default: false
+    default: false,
+    required: false
   },
   abmCpc: {
     type: String,
     enum: ['Company', 'Domain', 'State', 'Zipcode'],
-    default: 'Company' // Provide a default value if appropriate
+    default: 'Company', // Provide a default value if appropriate
+    required: false
   },
   nonAbmCpc: {
     type: String,
     enum: ['Company', 'Domain', 'Zipcode'],
-    default: 'Company' // Provide a default value if appropriate
+    default: 'Company', // Provide a default value if appropriate
+    required: false
   },
   noOfContacts: {
-    type: Number
+    type: Number,
+    required: false
   },
   industryFilter: {
     type: [String], // Array of strings to handle multiple selections
-    default: []
+    default: [],
+    required: false
   },
   functionFilter: {
     type: [String], // Array of strings to handle multiple selections
-    required: true
+    default: [],
+    required: false
   },
   seniorityLevel: {
     type: [String], // Array of strings for multiple seniority levels
-    default: []
+    default: [],
+    required: false
   },
   employeeSize: {
     type: [String], // Array of strings to handle multiple selections
-    default: []
+    default: [],
+    required: false
   },
   companyFilter: {
     type: [String], // Array of strings to handle multiple selections
-    default: []
+    default: [],
+    required: false
   },
   jobTitleFilter: {
     type: [String], // Array of strings to handle multiple selections
-    default: []
+    default: [],
+    required: false
   },
-  revenue: {
+  revenueFilter: {
     type: [String], // Array of strings to handle multiple revenue options
-    default: []
+    default: [],
+    required: false
   },
   countryFilter: {
     type: [String], // Array of strings to handle multiple selections
-    default: []
+    default: [],
+    required: false
   },
   cityFilter: {
     type: [String], // Array of strings to handle multiple selections
-    default: []
+    default: [],
+    required: false
   },
   zipCodeFilter: {
     type: [String], // Array of strings to handle multiple selections
-    default: []
+    default: [],
+    required: false
   }
 });
 
