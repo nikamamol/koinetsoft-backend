@@ -691,12 +691,81 @@ exports.uploadCsv = [upload, async (req, res) => {
 }];
 
 // create campaign
-exports.createCampaign = async (req, res) => {
-  try {
-    const campaign = new CampaignSchema(req.body);
-    const savedCampaign = await campaign.save();
-    res.status(201).json(savedCampaign);
-  } catch (error) {
-    res.status(400).json({ error: error.message });
+
+const campaignStorage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, 'uploads/'); // Directory to save uploaded files
+  },
+  filename: function (req, file, cb) {
+    cb(null, Date.now() + path.extname(file.originalname)); // Append date to filename
   }
-};
+});
+
+const uploadCampaign = multer({ storage: campaignStorage });
+
+exports.createCampaign = [
+  uploadCampaign.fields([
+    { name: 'assets', maxCount: 10 }, 
+    { name: 'script', maxCount: 10 },
+    { name: 'suppression', maxCount: 10 },
+    { name: 'tal', maxCount: 10 },
+    { name: 'suppressionList', maxCount: 10 }, 
+    { name: 'abmList', maxCount: 10 }
+  ]),
+  async (req, res) => {
+    try {
+      // Create campaign document
+      const campaign = new CampaignSchema({
+        ...req.body,
+        assets: req.files['assets'] ? req.files['assets'].map(file => ({
+          name: file.filename,
+          originalName: file.originalname,
+          mimeType: file.mimetype,
+          size: file.size,
+          path: file.path
+        })) : [],
+        script: req.files['script'] ? req.files['script'].map(file => ({
+          name: file.filename,
+          originalName: file.originalname,
+          mimeType: file.mimetype,
+          size: file.size,
+          path: file.path
+        })) : [],
+        suppression: req.files['suppression'] ? req.files['suppression'].map(file => ({
+          name: file.filename,
+          originalName: file.originalname,
+          mimeType: file.mimetype,
+          size: file.size,
+          path: file.path
+        })) : [],
+        tal: req.files['tal'] ? req.files['tal'].map(file => ({
+          name: file.filename,
+          originalName: file.originalname,
+          mimeType: file.mimetype,
+          size: file.size,
+          path: file.path
+        })) : [],
+        suppressionList: req.files['suppressionList'] ? req.files['suppressionList'].map(file => ({
+          name: file.filename,
+          originalName: file.originalname,
+          mimeType: file.mimetype,
+          size: file.size,
+          path: file.path
+        })) : [],
+        abmList: req.files['abmList'] ? req.files['abmList'].map(file => ({
+          name: file.filename,
+          originalName: file.originalname,
+          mimeType: file.mimetype,
+          size: file.size,
+          path: file.path
+        })) : []
+      });
+
+      // Save campaign
+      const savedCampaign = await campaign.save();
+      res.status(201).json(savedCampaign);
+    } catch (error) {
+      res.status(400).json({ error: error.message });
+    }
+  }
+];
