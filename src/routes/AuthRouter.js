@@ -24,6 +24,9 @@ const {
   deleteClient,
   uploadCsv,
   createCampaign,
+  getAllCampaigns,
+  updateCampaignById,
+  getCampaignById,
 } = require("../controller/auth");
 
 const UserAuthRouter = express.Router();
@@ -55,7 +58,11 @@ UserAuthRouter.delete("/deleteClient/:id", deleteClient);
 
 // create campaign
 UserAuthRouter.post("/createcampaign", createCampaign);
+UserAuthRouter.get('/getCampaignsData', getAllCampaigns);
+UserAuthRouter.get('/getCampaignsDataById/:id', getCampaignById);
+UserAuthRouter.put('/updateCampaignById/:id', updateCampaignById);
 
+// rpf 
 UserAuthRouter.post("/uplaodcsv", uploadCsv);
 
 

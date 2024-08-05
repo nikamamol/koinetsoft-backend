@@ -769,3 +769,118 @@ exports.createCampaign = [
     }
   }
 ];
+
+
+// get all campaign data
+exports.getAllCampaigns = async (req, res) => {
+  try {
+    // Retrieve all campaigns from the database
+    const campaigns = await CampaignSchema.find();
+    // Respond with the retrieved campaigns
+    res.status(200).json(campaigns);
+  } catch (error) {
+    console.error("Error fetching campaigns:", error);
+    res.status(500).json({ message: 'Error fetching campaigns', error });
+  }
+};
+
+
+// Update a specific campaign by ID
+exports.updateCampaignById = [
+  uploadCampaign.fields([
+    { name: 'assets', maxCount: 10 }, 
+    { name: 'script', maxCount: 10 },
+    { name: 'suppression', maxCount: 10 },
+    { name: 'tal', maxCount: 10 },
+    { name: 'suppressionList', maxCount: 10 }, 
+    { name: 'abmList', maxCount: 10 }
+  ]),
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+      const updateData = {
+        ...req.body,
+        assets: req.files['assets'] ? req.files['assets'].map(file => ({
+          name: file.filename,
+          originalName: file.originalname,
+          mimeType: file.mimetype,
+          size: file.size,
+          path: file.path
+        })) : undefined,
+        script: req.files['script'] ? req.files['script'].map(file => ({
+          name: file.filename,
+          originalName: file.originalname,
+          mimeType: file.mimetype,
+          size: file.size,
+          path: file.path
+        })) : undefined,
+        suppression: req.files['suppression'] ? req.files['suppression'].map(file => ({
+          name: file.filename,
+          originalName: file.originalname,
+          mimeType: file.mimetype,
+          size: file.size,
+          path: file.path
+        })) : undefined,
+        tal: req.files['tal'] ? req.files['tal'].map(file => ({
+          name: file.filename,
+          originalName: file.originalname,
+          mimeType: file.mimetype,
+          size: file.size,
+          path: file.path
+        })) : undefined,
+        suppressionList: req.files['suppressionList'] ? req.files['suppressionList'].map(file => ({
+          name: file.filename,
+          originalName: file.originalname,
+          mimeType: file.mimetype,
+          size: file.size,
+          path: file.path
+        })) : undefined,
+        abmList: req.files['abmList'] ? req.files['abmList'].map(file => ({
+          name: file.filename,
+          originalName: file.originalname,
+          mimeType: file.mimetype,
+          size: file.size,
+          path: file.path
+        })) : undefined,
+      };
+
+      // Remove undefined fields from updateData
+      Object.keys(updateData).forEach(key => updateData[key] === undefined && delete updateData[key]);
+
+      // Find and update the campaign
+      const updatedCampaign = await CampaignSchema.findByIdAndUpdate(id, updateData, { new: true });
+
+      if (!updatedCampaign) {
+        return res.status(404).json({ message: 'Campaign not found' });
+      }
+
+      // Respond with the updated campaign
+      res.status(200).json(updatedCampaign);
+    } catch (error) {
+      console.error("Error updating campaign:", error);
+      res.status(500).json({ message: 'Error updating campaign', error });
+    }
+  }
+];
+
+
+
+exports.getCampaignById = async (req, res) => {
+  try {
+    const { id } = req.params; // Extract the campaign ID from the request parameters
+
+    // Find the campaign by ID
+    const campaign = await CampaignSchema.findById(id);
+
+    if (!campaign) {
+      // If no campaign is found, respond with a 404 status and an error message
+      return res.status(404).json({ message: 'Campaign not found' });
+    }
+
+    // Respond with the found campaign details
+    res.status(200).json(campaign);
+  } catch (error) {
+    console.error("Error fetching campaign details:", error);
+    res.status(500).json({ message: 'Error fetching campaign details', error });
+  }
+};
