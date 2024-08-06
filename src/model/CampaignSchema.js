@@ -27,9 +27,9 @@ const campaignSchema = new mongoose.Schema({
   geo: String,
   industry: String,
   note: String,
-  abmCpc:String,
-  nonAbmCpc:String,
-  noOfContacts:Number,
+  abmCpc: String,
+  nonAbmCpc: String,
+  noOfContacts: Number,
   suppressionList: [Object],
   abmList: [Object],
   // Additional fields here...
@@ -62,8 +62,17 @@ const campaignSchema = new mongoose.Schema({
   ],
   campaignStatus: {
     type: String,
-    enum: ["Active", "Paused", "Completed", "Cancelled","Ongoing","Closed"], // Add all the desired statuses here
-    default: "Active", 
+    enum: [
+      "Active",
+      "Paused",
+      "Completed",
+      "Cancelled",
+      "Expired",
+      "Ongoing",
+      "Closed",
+      "Upcomming",
+    ], // Add all the desired statuses here
+    default: "Active",
   },
   tal: [
     {
