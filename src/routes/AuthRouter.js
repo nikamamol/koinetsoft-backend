@@ -2,31 +2,34 @@ const express = require("express");
 
 
 const {
-  signup,
-  login,
-  logout,
-  sendOtp,
-  verifyOtp,
-  accessuser,
-  getAllUsers,
-  viewUserById,
-  updateUser,
-  deleteUserById,
-  inviteagency,
-  myAgencyData,
-  updateAgency,
-  viewAgencyById,
-  deleteAgencyById,
-  addClient,
-  viewClient,
-  updateClient,
-  viewClientDetails,
-  deleteClient,
-  uploadCsv,
-  createCampaign,
-  getAllCampaigns,
-  updateCampaignById,
-  getCampaignById,
+    signup,
+    login,
+    logout,
+    sendOtp,
+    verifyOtp,
+    accessuser,
+    getAllUsers,
+    viewUserById,
+    updateUser,
+    deleteUserById,
+    inviteagency,
+    myAgencyData,
+    updateAgency,
+    viewAgencyById,
+    deleteAgencyById,
+    addClient,
+    viewClient,
+    updateClient,
+    viewClientDetails,
+    deleteClient,
+    uploadCsv,
+    createCampaign,
+    getAllCampaigns,
+    updateCampaignById,
+    getCampaignById,
+    addTemplate,
+    getTemplates,
+    getTemplateById,
 } = require("../controller/auth");
 
 const UserAuthRouter = express.Router();
@@ -64,6 +67,12 @@ UserAuthRouter.put('/updateCampaignById/:id', updateCampaignById);
 
 // rpf 
 UserAuthRouter.post("/uplaodcsv", uploadCsv);
+
+// create template
+UserAuthRouter.post("/createTemplate", addTemplate);
+UserAuthRouter.get("/getTemplateData", getTemplates);
+UserAuthRouter.get('/templates/:id', getTemplateById);
+
 
 
 
