@@ -8,10 +8,10 @@ const AccessUser = require("../model/AccessUser");
 const Vendor = require("../model/InviteVendor");
 const Client = require("../model/AddClient");
 
-const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
-const fastcsv = require('fast-csv');
+const multer = require("multer");
+const path = require("path");
+const fs = require("fs");
+const fastcsv = require("fast-csv");
 const CompanySchema = require("../model/CsvData");
 const CampaignSchema = require("../model/CampaignSchema");
 const Template = require("../model/CreateTemplate");
@@ -495,7 +495,9 @@ exports.viewAgencyById = async(req, res) => {
         };
 
         // Update the vendor details in the database
-        const updatedVendor = await Vendor.findByIdAndUpdate(id, updateData, { new: true });
+        const updatedVendor = await Vendor.findByIdAndUpdate(id, updateData, {
+            new: true,
+        });
 
         if (!updatedVendor) {
             return res.status(404).json({ message: "Vendor not found" });
@@ -559,13 +561,17 @@ exports.updateAgency = async(req, res) => {
         };
 
         // Update the vendor details in the database
-        const updatedVendor = await Vendor.findByIdAndUpdate(id, updateData, { new: true });
+        const updatedVendor = await Vendor.findByIdAndUpdate(id, updateData, {
+            new: true,
+        });
 
         if (!updatedVendor) {
             return res.status(404).json({ message: "Vendor not found" });
         }
 
-        res.status(200).json({ message: "Vendor updated successfully", updatedVendor });
+        res
+            .status(200)
+            .json({ message: "Vendor updated successfully", updatedVendor });
     } catch (error) {
         console.error("Error updating vendor:", error);
         res.status(500).json({ message: "Error updating vendor", error });
@@ -607,25 +613,27 @@ exports.viewClient = async(req, res) => {
         res.status(400).send(error.message);
     }
 };
-// view client details with id 
+// view client details with id
 exports.viewClientDetails = async(req, res) => {
-        try {
-            const client = await Client.findById(req.params.id);
-            res.status(200).send(client);
-        } catch (error) {
-            res.status(400).send(error.message);
-        }
-
+    try {
+        const client = await Client.findById(req.params.id);
+        res.status(200).send(client);
+    } catch (error) {
+        res.status(400).send(error.message);
     }
-    // update client
+};
+// update client
 exports.updateClient = async(req, res) => {
     try {
-        const updatedClient = await Client.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        const updatedClient = await Client.findByIdAndUpdate(
+            req.params.id,
+            req.body, { new: true }
+        );
         res.status(200).send(updatedClient);
     } catch (error) {
         res.status(400).send(error.message);
     }
-}
+};
 exports.deleteClient = async(req, res) => {
     try {
         const deletedClient = await Client.findByIdAndDelete(req.params.id);
@@ -633,131 +641,219 @@ exports.deleteClient = async(req, res) => {
     } catch (error) {
         res.status(400).send(error.message);
     }
+};
 
-}
-
-
-//upload csv file
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        cb(null, 'uploads/'); // Destination folder
+        cb(null, "uploads/"); // Destination folder
     },
     filename: (req, file, cb) => {
         cb(null, Date.now() + path.extname(file.originalname)); // Unique filename
-    }
+    },
 });
 
-const upload = multer({ storage: storage }).any();
+// Multer upload middleware
+const upload = multer({ storage: storage }).single("file");
 
-exports.uploadCsv = [upload, async(req, res) => {
-    try {
-        if (!req.files || req.files.length === 0) {
-            return res.status(400).send({ message: 'No file uploaded.' });
-        }
-
-        const file = req.files[0];
-
-        if (!file.filename || !file.originalname || !file.mimetype || !file.size || !file.path) {
-            return res.status(400).send({ message: 'Missing file metadata.' });
-        }
-
-        // Read file content if needed
-        let fileContent;
+exports.uploadCsv = [
+    upload,
+    async(req, res) => {
         try {
-            fileContent = fs.readFileSync(file.path);
-        } catch (readError) {
-            console.error("Error reading file content:", readError);
-            return res.status(500).send({ message: 'Error reading file content', error: readError });
+            const { campaignName, campaignCode } = req.body;
+
+            if (!req.file) {
+                return res.status(400).send({ message: "No file uploaded." });
+            }
+
+            if (!campaignName || !campaignCode) {
+                return res.status(400).send({ message: "Missing campaign name or campaign code." });
+            }
+
+            const file = req.file;
+
+            if (!file.filename || !file.originalname || !file.mimetype || !file.size || !file.path) {
+                return res.status(400).send({ message: "Missing file metadata." });
+            }
+
+            let fileContent;
+            try {
+                fileContent = fs.readFileSync(file.path);
+            } catch (readError) {
+                console.error("Error reading file content:", readError);
+                return res.status(500).send({ message: "Error reading file content", error: readError });
+            }
+
+            const newFile = new CompanySchema({
+                filename: file.filename,
+                originalname: file.originalname,
+                mimetype: file.mimetype,
+                size: file.size,
+                path: file.path,
+                content: fileContent,
+                campaignName,
+                campaignCode,
+                status: [
+                    { userType: "Employee", checked: true },
+                    { userType: "Quality", checked: false },
+                    { userType: "Email Marketing", checked: false },
+                ],
+            });
+
+            await newFile.save();
+
+            res.status(200).send({
+                message: "File uploaded and stored successfully",
+                file: newFile,
+            });
+        } catch (error) {
+            console.error("Error uploading or storing file:", error);
+            res.status(500).send({ message: "Error uploading or storing file", error });
+        }
+    },
+];
+
+exports.qualityCheck = async(req, res) => {
+    try {
+        const { id } = req.params;
+        const { status } = req.body;
+
+        if (!status || !Array.isArray(status)) {
+            return res.status(400).send({ message: "Invalid status data provided." });
         }
 
-        // Create a new document in the database
-        const newFile = new CompanySchema({
-            filename: file.filename,
-            originalname: file.originalname,
-            mimetype: file.mimetype,
-            size: file.size,
-            path: file.path,
-            content: fileContent // Store file content as binary
+        const updatedFile = await CompanySchema.findByIdAndUpdate(
+            id, { $set: { status } }, { new: true, runValidators: true }
+        );
+
+        if (!updatedFile) {
+            return res.status(404).send({ message: "File not found." });
+        }
+
+        res.status(200).send({
+            message: "Status updated successfully",
+            file: updatedFile,
         });
-
-        await newFile.save();
-
-        res.status(200).send({ message: 'File uploaded and stored successfully', file: newFile });
     } catch (error) {
-        console.error("Error uploading or storing file:", error);
-        res.status(500).send({ message: 'Error uploading or storing file', error });
+        console.error("Error updating status:", error);
+        res.status(500).send({ message: "Error updating status", error });
     }
-}];
+};
 
+
+exports.getCsvFiles = async(req, res) => {
+    try {
+        const files = await CompanySchema.find();
+
+        if (!files || files.length === 0) {
+            return res.status(404).send({ message: "No files found." });
+        }
+
+        res.status(200).send({
+            message: "Files retrieved successfully",
+            files: files,
+        });
+    } catch (error) {
+        console.error("Error retrieving files:", error);
+        res.status(500).send({ message: "Error retrieving files", error });
+    }
+};
+
+// GET API to retrieve a specific CSV file by ID
+exports.getCsvFileById = async(req, res) => {
+    try {
+        const fileId = req.params.id;
+        const file = await CompanySchema.findById(fileId);
+
+        if (!file) {
+            return res.status(404).send({ message: "File not found." });
+        }
+
+        res.setHeader("Content-Type", file.mimetype);
+        res.setHeader(
+            "Content-Disposition",
+            "attachment; filename=" + file.originalname
+        );
+        fs.createReadStream(file.path).pipe(res);
+    } catch (error) {
+        console.error("Error retrieving file:", error);
+        res.status(500).send({ message: "Error retrieving file", error });
+    }
+};
 // create campaign
 
 const campaignStorage = multer.diskStorage({
     destination: function(req, file, cb) {
-        cb(null, 'uploads/'); // Directory to save uploaded files
+        cb(null, "uploads/"); // Directory to save uploaded files
     },
     filename: function(req, file, cb) {
         cb(null, Date.now() + path.extname(file.originalname)); // Append date to filename
-    }
+    },
 });
 
 const uploadCampaign = multer({ storage: campaignStorage });
 
 exports.createCampaign = [
     uploadCampaign.fields([
-        { name: 'assets', maxCount: 10 },
-        { name: 'script', maxCount: 10 },
-        { name: 'suppression', maxCount: 10 },
-        { name: 'tal', maxCount: 10 },
-        { name: 'suppressionList', maxCount: 10 },
-        { name: 'abmList', maxCount: 10 }
+        { name: "assets", maxCount: 10 },
+        { name: "script", maxCount: 10 },
+        { name: "suppression", maxCount: 10 },
+        { name: "tal", maxCount: 10 },
+        { name: "suppressionList", maxCount: 10 },
+        { name: "abmList", maxCount: 10 },
     ]),
     async(req, res) => {
         try {
             // Create campaign document
             const campaign = new CampaignSchema({
                 ...req.body,
-                assets: req.files['assets'] ? req.files['assets'].map(file => ({
-                    name: file.filename,
-                    originalName: file.originalname,
-                    mimeType: file.mimetype,
-                    size: file.size,
-                    path: file.path
-                })) : [],
-                script: req.files['script'] ? req.files['script'].map(file => ({
-                    name: file.filename,
-                    originalName: file.originalname,
-                    mimeType: file.mimetype,
-                    size: file.size,
-                    path: file.path
-                })) : [],
-                suppression: req.files['suppression'] ? req.files['suppression'].map(file => ({
-                    name: file.filename,
-                    originalName: file.originalname,
-                    mimeType: file.mimetype,
-                    size: file.size,
-                    path: file.path
-                })) : [],
-                tal: req.files['tal'] ? req.files['tal'].map(file => ({
-                    name: file.filename,
-                    originalName: file.originalname,
-                    mimeType: file.mimetype,
-                    size: file.size,
-                    path: file.path
-                })) : [],
-                suppressionList: req.files['suppressionList'] ? req.files['suppressionList'].map(file => ({
-                    name: file.filename,
-                    originalName: file.originalname,
-                    mimeType: file.mimetype,
-                    size: file.size,
-                    path: file.path
-                })) : [],
-                abmList: req.files['abmList'] ? req.files['abmList'].map(file => ({
-                    name: file.filename,
-                    originalName: file.originalname,
-                    mimeType: file.mimetype,
-                    size: file.size,
-                    path: file.path
-                })) : []
+                assets: req.files["assets"] ?
+                    req.files["assets"].map((file) => ({
+                        name: file.filename,
+                        originalName: file.originalname,
+                        mimeType: file.mimetype,
+                        size: file.size,
+                        path: file.path,
+                    })) : [],
+                script: req.files["script"] ?
+                    req.files["script"].map((file) => ({
+                        name: file.filename,
+                        originalName: file.originalname,
+                        mimeType: file.mimetype,
+                        size: file.size,
+                        path: file.path,
+                    })) : [],
+                suppression: req.files["suppression"] ?
+                    req.files["suppression"].map((file) => ({
+                        name: file.filename,
+                        originalName: file.originalname,
+                        mimeType: file.mimetype,
+                        size: file.size,
+                        path: file.path,
+                    })) : [],
+                tal: req.files["tal"] ?
+                    req.files["tal"].map((file) => ({
+                        name: file.filename,
+                        originalName: file.originalname,
+                        mimeType: file.mimetype,
+                        size: file.size,
+                        path: file.path,
+                    })) : [],
+                suppressionList: req.files["suppressionList"] ?
+                    req.files["suppressionList"].map((file) => ({
+                        name: file.filename,
+                        originalName: file.originalname,
+                        mimeType: file.mimetype,
+                        size: file.size,
+                        path: file.path,
+                    })) : [],
+                abmList: req.files["abmList"] ?
+                    req.files["abmList"].map((file) => ({
+                        name: file.filename,
+                        originalName: file.originalname,
+                        mimeType: file.mimetype,
+                        size: file.size,
+                        path: file.path,
+                    })) : [],
             });
 
             // Save campaign
@@ -766,9 +862,8 @@ exports.createCampaign = [
         } catch (error) {
             res.status(400).json({ error: error.message });
         }
-    }
+    },
 ];
-
 
 // get all campaign data
 exports.getAllCampaigns = async(req, res) => {
@@ -779,90 +874,98 @@ exports.getAllCampaigns = async(req, res) => {
         res.status(200).json(campaigns);
     } catch (error) {
         console.error("Error fetching campaigns:", error);
-        res.status(500).json({ message: 'Error fetching campaigns', error });
+        res.status(500).json({ message: "Error fetching campaigns", error });
     }
 };
-
 
 // Update a specific campaign by ID
 exports.updateCampaignById = [
     uploadCampaign.fields([
-        { name: 'assets', maxCount: 10 },
-        { name: 'script', maxCount: 10 },
-        { name: 'suppression', maxCount: 10 },
-        { name: 'tal', maxCount: 10 },
-        { name: 'suppressionList', maxCount: 10 },
-        { name: 'abmList', maxCount: 10 }
+        { name: "assets", maxCount: 10 },
+        { name: "script", maxCount: 10 },
+        { name: "suppression", maxCount: 10 },
+        { name: "tal", maxCount: 10 },
+        { name: "suppressionList", maxCount: 10 },
+        { name: "abmList", maxCount: 10 },
     ]),
     async(req, res) => {
         try {
             const { id } = req.params;
             const updateData = {
                 ...req.body,
-                assets: req.files['assets'] ? req.files['assets'].map(file => ({
-                    name: file.filename,
-                    originalName: file.originalname,
-                    mimeType: file.mimetype,
-                    size: file.size,
-                    path: file.path
-                })) : undefined,
-                script: req.files['script'] ? req.files['script'].map(file => ({
-                    name: file.filename,
-                    originalName: file.originalname,
-                    mimeType: file.mimetype,
-                    size: file.size,
-                    path: file.path
-                })) : undefined,
-                suppression: req.files['suppression'] ? req.files['suppression'].map(file => ({
-                    name: file.filename,
-                    originalName: file.originalname,
-                    mimeType: file.mimetype,
-                    size: file.size,
-                    path: file.path
-                })) : undefined,
-                tal: req.files['tal'] ? req.files['tal'].map(file => ({
-                    name: file.filename,
-                    originalName: file.originalname,
-                    mimeType: file.mimetype,
-                    size: file.size,
-                    path: file.path
-                })) : undefined,
-                suppressionList: req.files['suppressionList'] ? req.files['suppressionList'].map(file => ({
-                    name: file.filename,
-                    originalName: file.originalname,
-                    mimeType: file.mimetype,
-                    size: file.size,
-                    path: file.path
-                })) : undefined,
-                abmList: req.files['abmList'] ? req.files['abmList'].map(file => ({
-                    name: file.filename,
-                    originalName: file.originalname,
-                    mimeType: file.mimetype,
-                    size: file.size,
-                    path: file.path
-                })) : undefined,
+                assets: req.files["assets"] ?
+                    req.files["assets"].map((file) => ({
+                        name: file.filename,
+                        originalName: file.originalname,
+                        mimeType: file.mimetype,
+                        size: file.size,
+                        path: file.path,
+                    })) : undefined,
+                script: req.files["script"] ?
+                    req.files["script"].map((file) => ({
+                        name: file.filename,
+                        originalName: file.originalname,
+                        mimeType: file.mimetype,
+                        size: file.size,
+                        path: file.path,
+                    })) : undefined,
+                suppression: req.files["suppression"] ?
+                    req.files["suppression"].map((file) => ({
+                        name: file.filename,
+                        originalName: file.originalname,
+                        mimeType: file.mimetype,
+                        size: file.size,
+                        path: file.path,
+                    })) : undefined,
+                tal: req.files["tal"] ?
+                    req.files["tal"].map((file) => ({
+                        name: file.filename,
+                        originalName: file.originalname,
+                        mimeType: file.mimetype,
+                        size: file.size,
+                        path: file.path,
+                    })) : undefined,
+                suppressionList: req.files["suppressionList"] ?
+                    req.files["suppressionList"].map((file) => ({
+                        name: file.filename,
+                        originalName: file.originalname,
+                        mimeType: file.mimetype,
+                        size: file.size,
+                        path: file.path,
+                    })) : undefined,
+                abmList: req.files["abmList"] ?
+                    req.files["abmList"].map((file) => ({
+                        name: file.filename,
+                        originalName: file.originalname,
+                        mimeType: file.mimetype,
+                        size: file.size,
+                        path: file.path,
+                    })) : undefined,
             };
 
             // Remove undefined fields from updateData
-            Object.keys(updateData).forEach(key => updateData[key] === undefined && delete updateData[key]);
+            Object.keys(updateData).forEach(
+                (key) => updateData[key] === undefined && delete updateData[key]
+            );
 
             // Find and update the campaign
-            const updatedCampaign = await CampaignSchema.findByIdAndUpdate(id, updateData, { new: true });
+            const updatedCampaign = await CampaignSchema.findByIdAndUpdate(
+                id,
+                updateData, { new: true }
+            );
 
             if (!updatedCampaign) {
-                return res.status(404).json({ message: 'Campaign not found' });
+                return res.status(404).json({ message: "Campaign not found" });
             }
 
             // Respond with the updated campaign
             res.status(200).json(updatedCampaign);
         } catch (error) {
             console.error("Error updating campaign:", error);
-            res.status(500).json({ message: 'Error updating campaign', error });
+            res.status(500).json({ message: "Error updating campaign", error });
         }
-    }
+    },
 ];
-
-
 
 exports.getCampaignById = async(req, res) => {
     try {
@@ -873,14 +976,14 @@ exports.getCampaignById = async(req, res) => {
 
         if (!campaign) {
             // If no campaign is found, respond with a 404 status and an error message
-            return res.status(404).json({ message: 'Campaign not found' });
+            return res.status(404).json({ message: "Campaign not found" });
         }
 
         // Respond with the found campaign details
         res.status(200).json(campaign);
     } catch (error) {
         console.error("Error fetching campaign details:", error);
-        res.status(500).json({ message: 'Error fetching campaign details', error });
+        res.status(500).json({ message: "Error fetching campaign details", error });
     }
 };
 
@@ -909,7 +1012,7 @@ exports.getTemplateById = async(req, res) => {
         const template = await Template.findById(templateId); // Fetch template by ID
 
         if (!template) {
-            return res.status(404).json({ message: 'Template not found' });
+            return res.status(404).json({ message: "Template not found" });
         }
 
         res.status(200).json(template); // Send the template as a JSON response
@@ -917,3 +1020,5 @@ exports.getTemplateById = async(req, res) => {
         res.status(500).send(error.message); // Handle any errors
     }
 };
+
+// upload csv file in campaign

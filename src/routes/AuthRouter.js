@@ -30,7 +30,12 @@ const {
     addTemplate,
     getTemplates,
     getTemplateById,
+    getUserDetails,
+    getCsvFiles,
+    getCsvFileById,
+    qualityCheck,
 } = require("../controller/auth");
+const authMiddleware = require("../middleware/AuthMeddile");
 
 const UserAuthRouter = express.Router();
 
@@ -39,6 +44,7 @@ UserAuthRouter.post("/login", login);
 UserAuthRouter.post("/logout", logout);
 UserAuthRouter.post("/send-otp", sendOtp);
 UserAuthRouter.post("/verify-otp", verifyOtp);
+// UserAuthRouter.get('/userdetails', authMiddleware, getUserDetails);
 // user
 UserAuthRouter.post("/addnewuser", accessuser);
 UserAuthRouter.get("/getallusers", getAllUsers);
@@ -66,7 +72,10 @@ UserAuthRouter.get('/getCampaignsDataById/:id', getCampaignById);
 UserAuthRouter.put('/updateCampaignById/:id', updateCampaignById);
 
 // rpf 
-UserAuthRouter.post("/uplaodcsv", uploadCsv);
+UserAuthRouter.post("/uploadcsv", uploadCsv);
+UserAuthRouter.get("/csvFileData", getCsvFiles);
+UserAuthRouter.get("/csvFileData/:id", getCsvFileById);
+UserAuthRouter.put("/qualityCheck/:id", qualityCheck);
 
 // create template
 UserAuthRouter.post("/createTemplate", addTemplate);
