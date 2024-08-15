@@ -34,6 +34,8 @@ const {
     getCsvFiles,
     getCsvFileById,
     qualityCheck,
+    updateStatus,
+    emailCheck,
 } = require("../controller/auth");
 
 const UserAuthRouter = express.Router();
@@ -75,6 +77,8 @@ UserAuthRouter.post("/uploadcsv", uploadCsv);
 UserAuthRouter.get("/csvFileData", getCsvFiles);
 UserAuthRouter.get("/csvFileData/:id", getCsvFileById);
 UserAuthRouter.put("/qualityCheck/:id", qualityCheck);
+UserAuthRouter.put("/updateStatus/:id", updateStatus);
+UserAuthRouter.put("/emailCheck/:id", emailCheck);
 
 // create template
 UserAuthRouter.post("/createTemplate", addTemplate);

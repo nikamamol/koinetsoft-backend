@@ -712,32 +712,118 @@ exports.uploadCsv = [
     },
 ];
 
+exports.updateStatus = [
+    async(req, res) => {
+        try {
+            const { id } = req.params;
+            const { status } = req.body;
+
+            // Validate the input
+            if (!Array.isArray(status)) {
+                return res.status(400).send({ message: "Invalid status format. It should be an array." });
+            }
+
+            // Fetch the document by ID
+            const campaign = await CompanySchema.findById(id);
+
+            if (!campaign) {
+                return res.status(404).send({ message: "Campaign not found." });
+            }
+
+            // Update the status field
+            campaign.status = status;
+
+            // Save the updated document
+            await campaign.save();
+
+            res.status(200).send({
+                message: "Status updated successfully",
+                campaign,
+            });
+        } catch (error) {
+            console.error("Error updating status:", error);
+            res.status(500).send({ message: "Error updating status", error });
+        }
+    }
+];
 exports.qualityCheck = async(req, res) => {
     try {
-        const { id } = req.params;
-        const { status } = req.body;
+        const { id } = req.params; // The ID of the document
+        const { checked } = req.body; // The 'checked' value to update
 
-        if (!status || !Array.isArray(status)) {
-            return res.status(400).send({ message: "Invalid status data provided." });
+        if (typeof checked !== 'boolean') {
+            return res.status(400).send({ message: "Invalid checked data provided." });
         }
 
-        const updatedFile = await CompanySchema.findByIdAndUpdate(
-            id, { $set: { status } }, { new: true, runValidators: true }
-        );
-
-        if (!updatedFile) {
+        // Find the file by ID
+        const file = await CompanySchema.findById(id);
+        if (!file) {
             return res.status(404).send({ message: "File not found." });
         }
 
+        // Update the status items for both 'Quality' and 'Email' user types
+        const updatedStatus = file.status.map(statusItem => {
+            if (statusItem.userType === 'Quality' || statusItem.userType === 'Email') {
+                return {...statusItem, checked }; // Update the 'checked' field
+            }
+            return statusItem; // Leave other items unchanged
+        });
+
+        // Save the updated file
+        const updatedFile = await CompanySchema.findByIdAndUpdate(
+            id, { $set: { status: updatedStatus } }, { new: true, runValidators: true }
+        );
+
         res.status(200).send({
-            message: "Status updated successfully",
-            file: updatedFile,
+            message: "Quality and Email status updated successfully",
+            file: updatedFile, // Return the updated file
         });
     } catch (error) {
         console.error("Error updating status:", error);
         res.status(500).send({ message: "Error updating status", error });
     }
 };
+
+
+exports.emailCheck = async(req, res) => {
+    try {
+        const { id } = req.params; // The ID of the document
+        const { checked } = req.body; // The 'checked' value to update
+
+        if (typeof checked !== 'boolean') {
+            return res.status(400).send({ message: "Invalid checked data provided." });
+        }
+
+        // Find the file by ID
+        const file = await CompanySchema.findById(id);
+        if (!file) {
+            return res.status(404).send({ message: "File not found." });
+        }
+
+        // Update only the status item with userType 'Quality'
+        const updatedStatus = file.status.map(statusItem => {
+            if (statusItem.userType === 'Email Marketing') {
+                return {...statusItem, checked }; // Update the 'checked' field
+            }
+            return statusItem; // Leave other items unchanged
+        });
+
+        // Save the updated file
+        const updatedFile = await CompanySchema.findByIdAndUpdate(
+            id, { $set: { status: updatedStatus } }, { new: true, runValidators: true }
+        );
+
+        res.status(200).send({
+            message: "Email status updated successfully",
+            file: updatedFile, // Return the updated file
+        });
+    } catch (error) {
+        console.error("Error updating status:", error);
+        res.status(500).send({ message: "Error updating status", error });
+    }
+};
+
+
 
 
 exports.getCsvFiles = async(req, res) => {
