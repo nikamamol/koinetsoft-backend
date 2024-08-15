@@ -35,7 +35,6 @@ const {
     getCsvFileById,
     qualityCheck,
 } = require("../controller/auth");
-const authMiddleware = require("../middleware/AuthMeddile");
 
 const UserAuthRouter = express.Router();
 
