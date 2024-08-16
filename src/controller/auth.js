@@ -666,12 +666,19 @@ exports.uploadCsv = [
             }
 
             if (!campaignName || !campaignCode) {
-                return res.status(400).send({ message: "Missing campaign name or campaign code." });
+                return res
+                    .status(400)
+                    .send({ message: "Missing campaign name or campaign code." });
             }
 
             const file = req.file;
 
-            if (!file.filename || !file.originalname || !file.mimetype || !file.size || !file.path) {
+            if (!file.filename ||
+                !file.originalname ||
+                !file.mimetype ||
+                !file.size ||
+                !file.path
+            ) {
                 return res.status(400).send({ message: "Missing file metadata." });
             }
 
@@ -680,7 +687,9 @@ exports.uploadCsv = [
                 fileContent = fs.readFileSync(file.path);
             } catch (readError) {
                 console.error("Error reading file content:", readError);
-                return res.status(500).send({ message: "Error reading file content", error: readError });
+                return res
+                    .status(500)
+                    .send({ message: "Error reading file content", error: readError });
             }
 
             const newFile = new CompanySchema({
@@ -707,7 +716,9 @@ exports.uploadCsv = [
             });
         } catch (error) {
             console.error("Error uploading or storing file:", error);
-            res.status(500).send({ message: "Error uploading or storing file", error });
+            res
+                .status(500)
+                .send({ message: "Error uploading or storing file", error });
         }
     },
 ];
@@ -720,7 +731,9 @@ exports.updateStatus = [
 
             // Validate the input
             if (!Array.isArray(status)) {
-                return res.status(400).send({ message: "Invalid status format. It should be an array." });
+                return res
+                    .status(400)
+                    .send({ message: "Invalid status format. It should be an array." });
             }
 
             // Fetch the document by ID
@@ -744,15 +757,17 @@ exports.updateStatus = [
             console.error("Error updating status:", error);
             res.status(500).send({ message: "Error updating status", error });
         }
-    }
+    },
 ];
 exports.qualityCheck = async(req, res) => {
     try {
         const { id } = req.params; // The ID of the document
         const { checked } = req.body; // The 'checked' value to update
 
-        if (typeof checked !== 'boolean') {
-            return res.status(400).send({ message: "Invalid checked data provided." });
+        if (typeof checked !== "boolean") {
+            return res
+                .status(400)
+                .send({ message: "Invalid checked data provided." });
         }
 
         // Find the file by ID
@@ -762,8 +777,11 @@ exports.qualityCheck = async(req, res) => {
         }
 
         // Update the status items for both 'Quality' and 'Email' user types
-        const updatedStatus = file.status.map(statusItem => {
-            if (statusItem.userType === 'Quality' || statusItem.userType === 'Email') {
+        const updatedStatus = file.status.map((statusItem) => {
+            if (
+                statusItem.userType === "Quality" ||
+                statusItem.userType === "Email"
+            ) {
                 return {...statusItem, checked }; // Update the 'checked' field
             }
             return statusItem; // Leave other items unchanged
@@ -784,14 +802,15 @@ exports.qualityCheck = async(req, res) => {
     }
 };
 
-
 exports.emailCheck = async(req, res) => {
     try {
         const { id } = req.params; // The ID of the document
         const { checked } = req.body; // The 'checked' value to update
 
-        if (typeof checked !== 'boolean') {
-            return res.status(400).send({ message: "Invalid checked data provided." });
+        if (typeof checked !== "boolean") {
+            return res
+                .status(400)
+                .send({ message: "Invalid checked data provided." });
         }
 
         // Find the file by ID
@@ -801,8 +820,8 @@ exports.emailCheck = async(req, res) => {
         }
 
         // Update only the status item with userType 'Quality'
-        const updatedStatus = file.status.map(statusItem => {
-            if (statusItem.userType === 'Email Marketing') {
+        const updatedStatus = file.status.map((statusItem) => {
+            if (statusItem.userType === "Email Marketing") {
                 return {...statusItem, checked }; // Update the 'checked' field
             }
             return statusItem; // Leave other items unchanged
@@ -823,9 +842,40 @@ exports.emailCheck = async(req, res) => {
     }
 };
 
+exports.deleteFile = async(req, res) => {
+    try {
+        const { id } = req.params;
 
+        // Find the file by ID
+        const file = await CompanySchema.findById(id);
+        if (!file) {
+            return res.status(404).send({ message: "File not found." });
+        }
 
+        // Get the file path
+        const filePath = file.path;
 
+        // Delete the file document from the database
+        await CompanySchema.findByIdAndDelete(id);
+
+        // Delete the file from the server's filesystem
+        fs.unlink(filePath, (err) => {
+            if (err) {
+                console.error("Error deleting file from filesystem:", err);
+                return res
+                    .status(500)
+                    .send({
+                        message: "File deleted from DB, but error removing it from filesystem",
+                        error: err,
+                    });
+            }
+            res.status(200).send({ message: "File deleted successfully" });
+        });
+    } catch (error) {
+        console.error("Error deleting file:", error);
+        res.status(500).send({ message: "Error deleting file", error });
+    }
+};
 exports.getCsvFiles = async(req, res) => {
     try {
         const files = await CompanySchema.find();

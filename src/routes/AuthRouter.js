@@ -36,6 +36,7 @@ const {
     qualityCheck,
     updateStatus,
     emailCheck,
+    deleteFile,
 } = require("../controller/auth");
 
 const UserAuthRouter = express.Router();
@@ -79,6 +80,7 @@ UserAuthRouter.get("/csvFileData/:id", getCsvFileById);
 UserAuthRouter.put("/qualityCheck/:id", qualityCheck);
 UserAuthRouter.put("/updateStatus/:id", updateStatus);
 UserAuthRouter.put("/emailCheck/:id", emailCheck);
+UserAuthRouter.delete('/csvFileData/:id', deleteFile);;
 
 // create template
 UserAuthRouter.post("/createTemplate", addTemplate);
