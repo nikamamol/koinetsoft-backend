@@ -654,8 +654,25 @@ const storage = multer.diskStorage({
 
 // Multer upload middleware
 const upload = multer({ storage: storage }).single("file");
+const verifyToken = (req, res, next) => {
+    const token = req.headers["authorization"];
+
+    if (!token) {
+        return res.status(403).send({ message: "No token provided." });
+    }
+
+    jwt.verify(token, process.env.JWT_KEY, (err, decoded) => {
+        if (err) {
+            return res.status(401).send({ message: "Unauthorized! Invalid token." });
+        }
+
+        req.userId = decoded.id;
+        next();
+    });
+};
 
 exports.uploadCsv = [
+    verifyToken, // Add token verification middleware here
     upload,
     async(req, res) => {
         try {
@@ -862,12 +879,10 @@ exports.deleteFile = async(req, res) => {
         fs.unlink(filePath, (err) => {
             if (err) {
                 console.error("Error deleting file from filesystem:", err);
-                return res
-                    .status(500)
-                    .send({
-                        message: "File deleted from DB, but error removing it from filesystem",
-                        error: err,
-                    });
+                return res.status(500).send({
+                    message: "File deleted from DB, but error removing it from filesystem",
+                    error: err,
+                });
             }
             res.status(200).send({ message: "File deleted successfully" });
         });
@@ -876,45 +891,54 @@ exports.deleteFile = async(req, res) => {
         res.status(500).send({ message: "Error deleting file", error });
     }
 };
-exports.getCsvFiles = async(req, res) => {
-    try {
-        const files = await CompanySchema.find();
 
-        if (!files || files.length === 0) {
-            return res.status(404).send({ message: "No files found." });
+exports.getCsvFiles = [
+    verifyToken, // Add token verification middleware here
+    async(req, res) => {
+        try {
+            const files = await CompanySchema.find();
+
+            if (!files || files.length === 0) {
+                return res.status(404).send({ message: "No files found." });
+            }
+
+            res.status(200).send({
+                message: "Files retrieved successfully",
+                files: files,
+            });
+        } catch (error) {
+            console.error("Error retrieving files:", error);
+            res.status(500).send({ message: "Error retrieving files", error });
         }
-
-        res.status(200).send({
-            message: "Files retrieved successfully",
-            files: files,
-        });
-    } catch (error) {
-        console.error("Error retrieving files:", error);
-        res.status(500).send({ message: "Error retrieving files", error });
-    }
-};
+    },
+];
 
 // GET API to retrieve a specific CSV file by ID
-exports.getCsvFileById = async(req, res) => {
-    try {
-        const fileId = req.params.id;
-        const file = await CompanySchema.findById(fileId);
+// GET API to retrieve a specific CSV file by ID
+exports.getCsvFileById = [
+    verifyToken, // Add token verification middleware here
+    async(req, res) => {
+        try {
+            const fileId = req.params.id;
+            const file = await CompanySchema.findById(fileId);
 
-        if (!file) {
-            return res.status(404).send({ message: "File not found." });
+            if (!file) {
+                return res.status(404).send({ message: "File not found." });
+            }
+
+            res.setHeader("Content-Type", file.mimetype);
+            res.setHeader(
+                "Content-Disposition",
+                "attachment; filename=" + file.originalname
+            );
+            fs.createReadStream(file.path).pipe(res);
+        } catch (error) {
+            console.error("Error retrieving file:", error);
+            res.status(500).send({ message: "Error retrieving file", error });
         }
+    },
+];
 
-        res.setHeader("Content-Type", file.mimetype);
-        res.setHeader(
-            "Content-Disposition",
-            "attachment; filename=" + file.originalname
-        );
-        fs.createReadStream(file.path).pipe(res);
-    } catch (error) {
-        console.error("Error retrieving file:", error);
-        res.status(500).send({ message: "Error retrieving file", error });
-    }
-};
 // create campaign
 
 const campaignStorage = multer.diskStorage({
