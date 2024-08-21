@@ -661,7 +661,9 @@ const verifyToken = (req, res, next) => {
         return res.status(403).send({ message: "No token provided." });
     }
 
-    jwt.verify(token, process.env.JWT_KEY, (err, decoded) => {
+    const actualToken = token.split(" ")[1]; // Split to get the actual token after 'Bearer'
+
+    jwt.verify(actualToken, process.env.JWT_KEY, (err, decoded) => {
         if (err) {
             return res.status(401).send({ message: "Unauthorized! Invalid token." });
         }
@@ -671,12 +673,13 @@ const verifyToken = (req, res, next) => {
     });
 };
 
+
 exports.uploadCsv = [
-    verifyToken, // Add token verification middleware here
+    // Add token verification middleware here
     upload,
     async(req, res) => {
         try {
-            const { campaignName, campaignCode } = req.body;
+            const { campaignName, campaignCode, _id } = req.body;
 
             if (!req.file) {
                 return res.status(400).send({ message: "No file uploaded." });
