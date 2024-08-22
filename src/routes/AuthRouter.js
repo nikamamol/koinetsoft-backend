@@ -37,7 +37,10 @@ const {
     updateStatus,
     emailCheck,
     deleteFile,
+    getUserData,
+    getCurrentUser,
 } = require("../controller/auth");
+const authenticateToken = require("../middleware/authMeddile");
 
 const UserAuthRouter = express.Router();
 
@@ -46,7 +49,7 @@ UserAuthRouter.post("/login", login);
 UserAuthRouter.post("/logout", logout);
 UserAuthRouter.post("/send-otp", sendOtp);
 UserAuthRouter.post("/verify-otp", verifyOtp);
-// UserAuthRouter.get('/userdetails', authMiddleware, getUserDetails);
+
 // user
 UserAuthRouter.post("/addnewuser", accessuser);
 UserAuthRouter.get("/getallusers", getAllUsers);

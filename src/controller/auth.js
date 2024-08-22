@@ -57,17 +57,29 @@ exports.signup = async(req, res) => {
 
 exports.login = async(req, res) => {
     const { email, password } = req.body;
+
     try {
-        const existingUser = await User.findOne({ email: email });
+        // Check if the user is already authenticated by verifying the token
+        const token = req.headers.authorization;
+
+        if (token) {
+            try {
+                const decodedToken = jwt.verify(token, process.env.JWT_KEY);
+                return res.status(200).send({ message: "User already authenticated", redirectTo: "/dashboard" });
+            } catch (err) {
+                // Token is invalid, proceed with login
+                console.error("Invalid token", err);
+            }
+        }
+
+        // Continue with login process
+        const existingUser = await User.findOne({ email });
 
         if (!existingUser) {
             return res.status(400).send({ message: "User not found" });
         }
 
-        const passwordMatched = await bcrypt.compare(
-            password,
-            existingUser.password
-        );
+        const passwordMatched = await bcrypt.compare(password, existingUser.password);
 
         if (!passwordMatched) {
             return res.status(400).send({ message: "Wrong password" });
@@ -84,7 +96,7 @@ exports.login = async(req, res) => {
         // Send OTP email
         const mailOptions = {
             from: process.env.EMAIL_USER,
-            to: "amolspatil018@gamil.com",
+            to: email, // Use the user's email
             subject: "Your OTP Code",
             text: `Your OTP code is ${otp}`,
         };
@@ -92,18 +104,14 @@ exports.login = async(req, res) => {
         transporter.sendMail(mailOptions, (error, info) => {
             if (error) {
                 console.error("Error sending OTP email:", error);
-                return res
-                    .status(500)
-                    .send({ message: "Error sending OTP email", error });
+                return res.status(500).send({ message: "Error sending OTP email", error });
             } else {
                 console.log("Email sent: " + info.response);
-                return res
-                    .status(200)
-                    .send({ message: "OTP sent successfully", email });
+                return res.status(200).send({ message: "OTP sent successfully", email });
             }
         });
     } catch (error) {
-        return res.status(500).send({ message: "Error logging in!", error: error });
+        return res.status(500).send({ message: "Error logging in!", error });
     }
 };
 
@@ -190,14 +198,21 @@ exports.verifyOtp = async(req, res) => {
             sameSite: "lax",
         });
 
-        return res
-            .status(200)
-            .send({ message: "OTP verified successfully", token: jwtToken });
+        // Include username in the response
+        const username = existingUser.username;
+
+        return res.status(200).send({
+            message: "OTP verified successfully",
+            token: jwtToken,
+            username: username, // Add username to the response
+        });
     } catch (error) {
         console.error("Error during OTP verification:", error);
         return res.status(500).send({ message: "Error verifying OTP", error });
     }
 };
+
+
 
 // user section on dashboard
 exports.accessuser = async(req, res) => {
@@ -915,6 +930,7 @@ exports.getCsvFiles = [
         }
     },
 ];
+
 
 // GET API to retrieve a specific CSV file by ID
 // GET API to retrieve a specific CSV file by ID
