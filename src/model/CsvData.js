@@ -12,7 +12,8 @@ const CampaignSchema = new mongoose.Schema({
     status: [{
         userType: { type: String, required: true }, // e.g., "Quality", "Email Marketing"
         checked: { type: Boolean, required: true, default: false } // Whether the user has checked the file
-    }]
+    }],
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true } // Add userId to associate files with users
 }, { timestamps: true }); // Enable timestamps
 
 const CompanySchema = mongoose.model("csvfileuploadbyra", CampaignSchema);

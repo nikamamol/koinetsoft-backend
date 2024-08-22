@@ -39,6 +39,7 @@ const {
     deleteFile,
     getUserData,
     getCurrentUser,
+    getCsvByRAFiles,
 } = require("../controller/auth");
 const authenticateToken = require("../middleware/authMeddile");
 
@@ -78,7 +79,8 @@ UserAuthRouter.put('/updateCampaignById/:id', updateCampaignById);
 
 // rpf 
 UserAuthRouter.post("/uploadcsv", uploadCsv);
-UserAuthRouter.get("/csvFileData", getCsvFiles);
+UserAuthRouter.get("/csvFileData", getCsvByRAFiles);
+UserAuthRouter.get("/csvFileAllData", getCsvFiles);
 UserAuthRouter.get("/csvFileData/:id", getCsvFileById);
 UserAuthRouter.put("/qualityCheck/:id", qualityCheck);
 UserAuthRouter.put("/updateStatus/:id", updateStatus);
@@ -89,10 +91,6 @@ UserAuthRouter.delete('/csvFileData/:id', deleteFile);;
 UserAuthRouter.post("/createTemplate", addTemplate);
 UserAuthRouter.get("/getTemplateData", getTemplates);
 UserAuthRouter.get('/templates/:id', getTemplateById);
-
-
-
-
 
 
 module.exports = UserAuthRouter;

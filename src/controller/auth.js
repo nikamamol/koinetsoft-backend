@@ -15,6 +15,7 @@ const fastcsv = require("fast-csv");
 const CompanySchema = require("../model/CsvData");
 const CampaignSchema = require("../model/CampaignSchema");
 const Template = require("../model/CreateTemplate");
+const authenticateToken = require("../middleware/auth");
 
 require("dotenv").config();
 
@@ -169,6 +170,7 @@ exports.sendOtp = async(req, res) => {
 exports.verifyOtp = async(req, res) => {
     const { otp } = req.body;
     try {
+        // Find the user based on OTP
         const existingUser = await User.findOne({ otp });
 
         if (!existingUser) {
@@ -184,34 +186,33 @@ exports.verifyOtp = async(req, res) => {
         existingUser.otpExpires = null;
         await existingUser.save();
 
+        // Generate JWT token with user details
         const jwtToken = jwt.sign({
-                _id: existingUser._id,
-                email: existingUser.email,
-            },
-            process.env.JWT_KEY, { expiresIn: "1d" } // Token expires in 1 day
-        );
+            userId: existingUser._id,
+            email: existingUser.email,
+            username: existingUser.username, // Include username in token payload if needed
+        }, process.env.JWT_KEY, { expiresIn: "1d" }); // Token expires in 1 day
 
+        // Send success response with token and username
+        return res.status(200).send({
+            message: "OTP verified successfully",
+            token: jwtToken,
+            username: existingUser.username, // Add username to the response
+        });
+
+        // Optionally, set the token in cookies if needed
         res.cookie("token", jwtToken, {
             path: "/",
-            expires: new Date(Date.now() + 1000 * 60 * 60 * 24),
+            expires: new Date(Date.now() + 1000 * 60 * 60 * 24), // 1 day
             httpOnly: true,
             sameSite: "lax",
         });
 
-        // Include username in the response
-        const username = existingUser.username;
-
-        return res.status(200).send({
-            message: "OTP verified successfully",
-            token: jwtToken,
-            username: username, // Add username to the response
-        });
     } catch (error) {
         console.error("Error during OTP verification:", error);
         return res.status(500).send({ message: "Error verifying OTP", error });
     }
 };
-
 
 
 // user section on dashboard
@@ -688,75 +689,91 @@ const verifyToken = (req, res, next) => {
     });
 };
 
-
 exports.uploadCsv = [
-    // Add token verification middleware here
     upload,
     async(req, res) => {
         try {
-            const { campaignName, campaignCode, _id } = req.body;
-
-            if (!req.file) {
-                return res.status(400).send({ message: "No file uploaded." });
+            const authHeader = req.headers['authorization'];
+            if (!authHeader) {
+                return res.status(401).send({ message: "Unauthorized. Token required." });
             }
 
-            if (!campaignName || !campaignCode) {
-                return res
-                    .status(400)
-                    .send({ message: "Missing campaign name or campaign code." });
+            const token = authHeader.split(' ')[1];
+            if (!token) {
+                return res.status(401).send({ message: "Unauthorized. Token missing." });
             }
 
-            const file = req.file;
+            jwt.verify(token, process.env.JWT_KEY, async(err, decoded) => {
+                if (err) {
+                    return res.status(401).send({ message: "Unauthorized. Invalid token." });
+                }
 
-            if (!file.filename ||
-                !file.originalname ||
-                !file.mimetype ||
-                !file.size ||
-                !file.path
-            ) {
-                return res.status(400).send({ message: "Missing file metadata." });
-            }
-
-            let fileContent;
-            try {
-                fileContent = fs.readFileSync(file.path);
-            } catch (readError) {
-                console.error("Error reading file content:", readError);
-                return res
-                    .status(500)
-                    .send({ message: "Error reading file content", error: readError });
-            }
-
-            const newFile = new CompanySchema({
-                filename: file.filename,
-                originalname: file.originalname,
-                mimetype: file.mimetype,
-                size: file.size,
-                path: file.path,
-                content: fileContent,
-                campaignName,
-                campaignCode,
-                status: [
-                    { userType: "Employee", checked: true },
-                    { userType: "Quality", checked: false },
-                    { userType: "Email Marketing", checked: false },
-                ],
-            });
-
-            await newFile.save();
-
-            res.status(200).send({
-                message: "File uploaded and stored successfully",
-                file: newFile,
+                const userId = decoded.userId;
+                console.log(userId);
+                await handleFileUpload(req, res, userId);
             });
         } catch (error) {
-            console.error("Error uploading or storing file:", error);
-            res
-                .status(500)
-                .send({ message: "Error uploading or storing file", error });
+            console.error("Error in token validation:", error);
+            res.status(500).send({ message: "Internal server error during token validation", error });
         }
     },
 ];
+
+async function handleFileUpload(req, res, userId) {
+    try {
+        const { campaignName, campaignCode } = req.body;
+
+        if (!req.file) {
+            return res.status(400).send({ message: "No file uploaded." });
+        }
+
+        if (!campaignName || !campaignCode) {
+            return res.status(400).send({ message: "Missing campaign name or campaign code." });
+        }
+
+        const file = req.file;
+
+        if (!file.filename || !file.originalname || !file.mimetype || !file.size || !file.path) {
+            return res.status(400).send({ message: "Incomplete file metadata." });
+        }
+
+        let fileContent;
+        try {
+            fileContent = fs.readFileSync(file.path);
+        } catch (readError) {
+            console.error("Error reading file content:", readError);
+            return res.status(500).send({ message: "Error reading file content", error: readError });
+        }
+
+        const newFile = new CompanySchema({
+            filename: file.filename,
+            originalname: file.originalname,
+            mimetype: file.mimetype,
+            size: file.size,
+            path: file.path,
+            content: fileContent,
+            campaignName,
+            campaignCode,
+            status: [
+                { userType: "Employee", checked: true },
+                { userType: "Quality", checked: false },
+                { userType: "Email Marketing", checked: false },
+            ],
+            userId
+        });
+
+        await newFile.save();
+
+        res.status(200).send({
+            message: "File uploaded and stored successfully",
+            file: newFile,
+        });
+    } catch (error) {
+        console.error("Error uploading or storing file:", error);
+        res.status(500).send({ message: "Internal server error during file upload or storage", error });
+    }
+}
+
 
 exports.updateStatus = [
     async(req, res) => {
@@ -794,7 +811,8 @@ exports.updateStatus = [
         }
     },
 ];
-exports.qualityCheck = async(req, res) => {
+
+exports.qualityCheck = authenticateToken, async(req, res) => {
     try {
         const { id } = req.params; // The ID of the document
         const { checked } = req.body; // The 'checked' value to update
@@ -837,7 +855,7 @@ exports.qualityCheck = async(req, res) => {
     }
 };
 
-exports.emailCheck = async(req, res) => {
+exports.emailCheck = authenticateToken, async(req, res) => {
     try {
         const { id } = req.params; // The ID of the document
         const { checked } = req.body; // The 'checked' value to update
@@ -877,7 +895,7 @@ exports.emailCheck = async(req, res) => {
     }
 };
 
-exports.deleteFile = async(req, res) => {
+exports.deleteFile = [authenticateToken, async(req, res) => {
     try {
         const { id } = req.params;
 
@@ -887,28 +905,90 @@ exports.deleteFile = async(req, res) => {
             return res.status(404).send({ message: "File not found." });
         }
 
-        // Get the file path
-        const filePath = file.path;
+        // Get the file path and ensure it's absolute
+        const filePath = path.resolve(file.path);
 
-        // Delete the file document from the database
-        await CompanySchema.findByIdAndDelete(id);
-
-        // Delete the file from the server's filesystem
-        fs.unlink(filePath, (err) => {
+        // Check if file exists before attempting to delete
+        fs.access(filePath, fs.constants.F_OK, async(err) => {
             if (err) {
-                console.error("Error deleting file from filesystem:", err);
-                return res.status(500).send({
-                    message: "File deleted from DB, but error removing it from filesystem",
-                    error: err,
-                });
+                console.error("File not found at path:", filePath);
+                return res.status(404).send({ message: "File not found on filesystem" });
             }
-            res.status(200).send({ message: "File deleted successfully" });
+
+            try {
+                // Delete the file document from the database
+                await CompanySchema.findByIdAndDelete(id);
+
+                // Delete the file from the server's filesystem
+                fs.unlink(filePath, (unlinkErr) => {
+                    if (unlinkErr) {
+                        console.error("Error deleting file from filesystem:", unlinkErr);
+                        return res.status(500).send({
+                            message: "File deleted from DB, but error removing it from filesystem",
+                            error: unlinkErr,
+                        });
+                    }
+                    res.status(200).send({ message: "File deleted successfully" });
+                });
+            } catch (deleteErr) {
+                console.error("Error deleting file from database:", deleteErr);
+                res.status(500).send({ message: "Error deleting file from DB", error: deleteErr });
+            }
         });
     } catch (error) {
         console.error("Error deleting file:", error);
         res.status(500).send({ message: "Error deleting file", error });
     }
+}];
+
+
+const authenticateToken1 = (req, res, next) => {
+    const authHeader = req.headers['authorization'];
+    if (!authHeader) {
+        return res.status(401).send({ message: "Unauthorized. Token required." });
+    }
+
+    const token = authHeader.split(' ')[1];
+    if (!token) {
+        return res.status(401).send({ message: "Unauthorized. Token missing." });
+    }
+
+    jwt.verify(token, process.env.JWT_KEY, (err, decoded) => {
+        if (err) {
+            return res.status(401).send({ message: "Unauthorized. Invalid token." });
+        }
+
+        // Attach userId to the request object
+        req.userId = decoded.userId;
+        next();
+    });
 };
+
+exports.getCsvByRAFiles = [
+    authenticateToken1, // Use the token verification middleware
+    async(req, res) => {
+        try {
+            // Extract userId from the request object (assuming it's set in authenticateToken middleware)
+            const { userId } = req;
+
+            // console.log("userId", userId);
+            // Find files associated with the userId
+            const files = await CompanySchema.find({ userId });
+
+            if (!files || files.length === 0) {
+                return res.status(404).send({ message: "No files found for this user." });
+            }
+
+            res.status(200).send({
+                message: "Files retrieved successfully",
+                files,
+            });
+        } catch (error) {
+            console.error("Error retrieving files:", error);
+            res.status(500).send({ message: "Error retrieving files", error });
+        }
+    },
+];
 
 exports.getCsvFiles = [
     verifyToken, // Add token verification middleware here
@@ -932,7 +1012,7 @@ exports.getCsvFiles = [
 ];
 
 
-// GET API to retrieve a specific CSV file by ID
+
 // GET API to retrieve a specific CSV file by ID
 exports.getCsvFileById = [
     verifyToken, // Add token verification middleware here
