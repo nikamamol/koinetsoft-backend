@@ -191,6 +191,7 @@ exports.verifyOtp = async(req, res) => {
             userId: existingUser._id,
             email: existingUser.email,
             username: existingUser.username, // Include username in token payload if needed
+            role: existingUser.role, // Include username in token payload if needed
         }, process.env.JWT_KEY, { expiresIn: "1d" }); // Token expires in 1 day
 
         // Send success response with token and username
@@ -198,6 +199,7 @@ exports.verifyOtp = async(req, res) => {
             message: "OTP verified successfully",
             token: jwtToken,
             username: existingUser.username, // Add username to the response
+            role: existingUser.role, // Add username to the response
         });
 
         // Optionally, set the token in cookies if needed
@@ -709,7 +711,7 @@ exports.uploadCsv = [
                 }
 
                 const userId = decoded.userId;
-                console.log(userId);
+                // console.log(userId);
                 await handleFileUpload(req, res, userId);
             });
         } catch (error) {
@@ -759,7 +761,7 @@ async function handleFileUpload(req, res, userId) {
                 { userType: "Quality", checked: false },
                 { userType: "Email Marketing", checked: false },
             ],
-            userId
+            userId,
         });
 
         await newFile.save();
