@@ -943,7 +943,6 @@ exports.deleteFile = [authenticateToken, async(req, res) => {
     }
 }];
 
-
 const authenticateToken1 = (req, res, next) => {
     const authHeader = req.headers['authorization'];
     if (!authHeader) {
@@ -970,10 +969,9 @@ exports.getCsvByRAFiles = [
     authenticateToken1, // Use the token verification middleware
     async(req, res) => {
         try {
-            // Extract userId from the request object (assuming it's set in authenticateToken middleware)
+            // Extract userId from the request object (set in authenticateToken1 middleware)
             const { userId } = req;
 
-            // console.log("userId", userId);
             // Find files associated with the userId
             const files = await CompanySchema.find({ userId });
 
@@ -981,9 +979,20 @@ exports.getCsvByRAFiles = [
                 return res.status(404).send({ message: "No files found for this user." });
             }
 
+            // Optional: Transform the response to only include necessary data
+            const responseFiles = files.map(file => ({
+                filename: file.filename,
+                originalname: file.originalname,
+                mimetype: file.mimetype,
+                size: file.size,
+                campaignName: file.campaignName,
+                campaignCode: file.campaignCode,
+                content: file.content.toString('utf8'), // Assuming CSV content is stored as a buffer
+            }));
+
             res.status(200).send({
                 message: "Files retrieved successfully",
-                files,
+                files: responseFiles,
             });
         } catch (error) {
             console.error("Error retrieving files:", error);
@@ -993,18 +1002,30 @@ exports.getCsvByRAFiles = [
 ];
 
 exports.getCsvFiles = [
-    verifyToken, // Add token verification middleware here
+    authenticateToken1, // Add token verification middleware here
     async(req, res) => {
         try {
+            // Retrieve all files from the database
             const files = await CompanySchema.find();
 
             if (!files || files.length === 0) {
                 return res.status(404).send({ message: "No files found." });
             }
 
+            // Optional: Transform the response to only include necessary data
+            const responseFiles = files.map(file => ({
+                filename: file.filename,
+                originalname: file.originalname,
+                mimetype: file.mimetype,
+                size: file.size,
+                campaignName: file.campaignName,
+                campaignCode: file.campaignCode,
+                content: file.content.toString('utf8'), // Assuming CSV content is stored as a buffer
+            }));
+
             res.status(200).send({
                 message: "Files retrieved successfully",
-                files: files,
+                files: responseFiles,
             });
         } catch (error) {
             console.error("Error retrieving files:", error);
@@ -1012,6 +1033,76 @@ exports.getCsvFiles = [
         }
     },
 ];
+
+
+// const authenticateToken1 = (req, res, next) => {
+//     const authHeader = req.headers['authorization'];
+//     if (!authHeader) {
+//         return res.status(401).send({ message: "Unauthorized. Token required." });
+//     }
+
+//     const token = authHeader.split(' ')[1];
+//     if (!token) {
+//         return res.status(401).send({ message: "Unauthorized. Token missing." });
+//     }
+
+//     jwt.verify(token, process.env.JWT_KEY, (err, decoded) => {
+//         if (err) {
+//             return res.status(401).send({ message: "Unauthorized. Invalid token." });
+//         }
+
+//         // Attach userId to the request object
+//         req.userId = decoded.userId;
+//         next();
+//     });
+// };
+
+// exports.getCsvByRAFiles = [
+//     authenticateToken1, // Use the token verification middleware
+//     async(req, res) => {
+//         try {
+//             // Extract userId from the request object (assuming it's set in authenticateToken middleware)
+//             const { userId } = req;
+
+//             // console.log("userId", userId);
+//             // Find files associated with the userId
+//             const files = await CompanySchema.find({ userId });
+
+//             if (!files || files.length === 0) {
+//                 return res.status(404).send({ message: "No files found for this user." });
+//             }
+
+//             res.status(200).send({
+//                 message: "Files retrieved successfully",
+//                 files,
+//             });
+//         } catch (error) {
+//             console.error("Error retrieving files:", error);
+//             res.status(500).send({ message: "Error retrieving files", error });
+//         }
+//     },
+// ];
+
+// exports.getCsvFiles = [
+//     verifyToken, // Add token verification middleware here
+//     async(req, res) => {
+//         try {
+//             const files = await CompanySchema.find();
+
+//             if (!files || files.length === 0) {
+//                 return res.status(404).send({ message: "No files found." });
+//             }
+
+//             res.status(200).send({
+//                 message: "Files retrieved successfully",
+//                 files: files,
+//             });
+//         } catch (error) {
+//             console.error("Error retrieving files:", error);
+//             res.status(500).send({ message: "Error retrieving files", error });
+//         }
+//     },
+// ];
 
 
 
