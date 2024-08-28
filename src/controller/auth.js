@@ -789,14 +789,12 @@ exports.updateStatus = [
                     .status(400)
                     .send({ message: "Invalid status format. It should be an array." });
             }
-
             // Fetch the document by ID
             const campaign = await CompanySchema.findById(id);
 
             if (!campaign) {
                 return res.status(404).send({ message: "Campaign not found." });
             }
-
             // Update the status field
             campaign.status = status;
 
@@ -814,88 +812,6 @@ exports.updateStatus = [
     },
 ];
 
-exports.qualityCheck = authenticateToken, async(req, res) => {
-    try {
-        const { id } = req.params; // The ID of the document
-        const { checked } = req.body; // The 'checked' value to update
-
-        if (typeof checked !== "boolean") {
-            return res
-                .status(400)
-                .send({ message: "Invalid checked data provided." });
-        }
-
-        // Find the file by ID
-        const file = await CompanySchema.findById(id);
-        if (!file) {
-            return res.status(404).send({ message: "File not found." });
-        }
-
-        // Update the status items for both 'Quality' and 'Email' user types
-        const updatedStatus = file.status.map((statusItem) => {
-            if (
-                statusItem.userType === "Quality" ||
-                statusItem.userType === "Email"
-            ) {
-                return {...statusItem, checked }; // Update the 'checked' field
-            }
-            return statusItem; // Leave other items unchanged
-        });
-
-        // Save the updated file
-        const updatedFile = await CompanySchema.findByIdAndUpdate(
-            id, { $set: { status: updatedStatus } }, { new: true, runValidators: true }
-        );
-
-        res.status(200).send({
-            message: "Quality and Email status updated successfully",
-            file: updatedFile, // Return the updated file
-        });
-    } catch (error) {
-        console.error("Error updating status:", error);
-        res.status(500).send({ message: "Error updating status", error });
-    }
-};
-
-exports.emailCheck = authenticateToken, async(req, res) => {
-    try {
-        const { id } = req.params; // The ID of the document
-        const { checked } = req.body; // The 'checked' value to update
-
-        if (typeof checked !== "boolean") {
-            return res
-                .status(400)
-                .send({ message: "Invalid checked data provided." });
-        }
-
-        // Find the file by ID
-        const file = await CompanySchema.findById(id);
-        if (!file) {
-            return res.status(404).send({ message: "File not found." });
-        }
-
-        // Update only the status item with userType 'Quality'
-        const updatedStatus = file.status.map((statusItem) => {
-            if (statusItem.userType === "Email Marketing") {
-                return {...statusItem, checked }; // Update the 'checked' field
-            }
-            return statusItem; // Leave other items unchanged
-        });
-
-        // Save the updated file
-        const updatedFile = await CompanySchema.findByIdAndUpdate(
-            id, { $set: { status: updatedStatus } }, { new: true, runValidators: true }
-        );
-
-        res.status(200).send({
-            message: "Email status updated successfully",
-            file: updatedFile, // Return the updated file
-        });
-    } catch (error) {
-        console.error("Error updating status:", error);
-        res.status(500).send({ message: "Error updating status", error });
-    }
-};
 
 exports.deleteFile = [authenticateToken, async(req, res) => {
     try {
@@ -943,6 +859,7 @@ exports.deleteFile = [authenticateToken, async(req, res) => {
     }
 }];
 
+
 const authenticateToken1 = (req, res, next) => {
     const authHeader = req.headers['authorization'];
     if (!authHeader) {
@@ -969,9 +886,10 @@ exports.getCsvByRAFiles = [
     authenticateToken1, // Use the token verification middleware
     async(req, res) => {
         try {
-            // Extract userId from the request object (set in authenticateToken1 middleware)
+            // Extract userId from the request object (assuming it's set in authenticateToken middleware)
             const { userId } = req;
 
+            // console.log("userId", userId);
             // Find files associated with the userId
             const files = await CompanySchema.find({ userId });
 
@@ -979,20 +897,9 @@ exports.getCsvByRAFiles = [
                 return res.status(404).send({ message: "No files found for this user." });
             }
 
-            // Optional: Transform the response to only include necessary data
-            const responseFiles = files.map(file => ({
-                filename: file.filename,
-                originalname: file.originalname,
-                mimetype: file.mimetype,
-                size: file.size,
-                campaignName: file.campaignName,
-                campaignCode: file.campaignCode,
-                content: file.content.toString('utf8'), // Assuming CSV content is stored as a buffer
-            }));
-
             res.status(200).send({
                 message: "Files retrieved successfully",
-                files: responseFiles,
+                files,
             });
         } catch (error) {
             console.error("Error retrieving files:", error);
@@ -1001,31 +908,21 @@ exports.getCsvByRAFiles = [
     },
 ];
 
+
+
 exports.getCsvFiles = [
-    authenticateToken1, // Add token verification middleware here
+    verifyToken, // Add token verification middleware here
     async(req, res) => {
         try {
-            // Retrieve all files from the database
             const files = await CompanySchema.find();
 
             if (!files || files.length === 0) {
                 return res.status(404).send({ message: "No files found." });
             }
 
-            // Optional: Transform the response to only include necessary data
-            const responseFiles = files.map(file => ({
-                filename: file.filename,
-                originalname: file.originalname,
-                mimetype: file.mimetype,
-                size: file.size,
-                campaignName: file.campaignName,
-                campaignCode: file.campaignCode,
-                content: file.content.toString('utf8'), // Assuming CSV content is stored as a buffer
-            }));
-
             res.status(200).send({
                 message: "Files retrieved successfully",
-                files: responseFiles,
+                files: files,
             });
         } catch (error) {
             console.error("Error retrieving files:", error);
@@ -1035,77 +932,38 @@ exports.getCsvFiles = [
 ];
 
 
-// const authenticateToken1 = (req, res, next) => {
-//     const authHeader = req.headers['authorization'];
-//     if (!authHeader) {
-//         return res.status(401).send({ message: "Unauthorized. Token required." });
-//     }
+exports.getExcelFiles = async(req, res) => {
+    const { fileId } = req.params;
+    const filePath = path.join(__dirname, 'uploads', `${fileId}.xlsx`); // Adjust the path as necessary
 
-//     const token = authHeader.split(' ')[1];
-//     if (!token) {
-//         return res.status(401).send({ message: "Unauthorized. Token missing." });
-//     }
+    if (fs.existsSync(filePath)) {
+        try {
+            // Read the Excel file
+            const workbook = xlsx.readFile(filePath);
+            const sheetNames = workbook.SheetNames;
 
-//     jwt.verify(token, process.env.JWT_KEY, (err, decoded) => {
-//         if (err) {
-//             return res.status(401).send({ message: "Unauthorized. Invalid token." });
-//         }
+            for (const sheetName of sheetNames) {
+                const sheet = workbook.Sheets[sheetName];
+                const sheetData = xlsx.utils.sheet_to_json(sheet);
 
-//         // Attach userId to the request object
-//         req.userId = decoded.userId;
-//         next();
-//     });
-// };
+                // Save each sheet's data to MongoDB
+                const excelData = new CompanySchema({
+                    fileName: fileId,
+                    sheetName,
+                    data: sheetData
+                });
+                await excelData.save();
+            }
 
-// exports.getCsvByRAFiles = [
-//     authenticateToken1, // Use the token verification middleware
-//     async(req, res) => {
-//         try {
-//             // Extract userId from the request object (assuming it's set in authenticateToken middleware)
-//             const { userId } = req;
-
-//             // console.log("userId", userId);
-//             // Find files associated with the userId
-//             const files = await CompanySchema.find({ userId });
-
-//             if (!files || files.length === 0) {
-//                 return res.status(404).send({ message: "No files found for this user." });
-//             }
-
-//             res.status(200).send({
-//                 message: "Files retrieved successfully",
-//                 files,
-//             });
-//         } catch (error) {
-//             console.error("Error retrieving files:", error);
-//             res.status(500).send({ message: "Error retrieving files", error });
-//         }
-//     },
-// ];
-
-// exports.getCsvFiles = [
-//     verifyToken, // Add token verification middleware here
-//     async(req, res) => {
-//         try {
-//             const files = await CompanySchema.find();
-
-//             if (!files || files.length === 0) {
-//                 return res.status(404).send({ message: "No files found." });
-//             }
-
-//             res.status(200).send({
-//                 message: "Files retrieved successfully",
-//                 files: files,
-//             });
-//         } catch (error) {
-//             console.error("Error retrieving files:", error);
-//             res.status(500).send({ message: "Error retrieving files", error });
-//         }
-//     },
-// ];
-
-
-
+            res.status(200).json({ success: true, message: 'Excel data saved to database' });
+        } catch (error) {
+            console.error('Error processing the Excel file:', error);
+            res.status(500).json({ success: false, message: 'Error processing the Excel file' });
+        }
+    } else {
+        res.status(404).json({ success: false, message: 'File not found' });
+    }
+};
 // GET API to retrieve a specific CSV file by ID
 exports.getCsvFileById = [
     verifyToken, // Add token verification middleware here
