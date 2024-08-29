@@ -909,6 +909,7 @@ exports.getCsvByRAFiles = [
 ];
 
 
+
 exports.getCsvFiles = [
     verifyToken, // Add token verification middleware here
     async(req, res) => {
@@ -965,7 +966,7 @@ exports.getExcelFiles = async(req, res) => {
 };
 // GET API to retrieve a specific CSV file by ID
 exports.getCsvFileById = [
-    verifyToken,
+    verifyToken, // Add token verification middleware here
     async(req, res) => {
         try {
             const fileId = req.params.id;
@@ -975,11 +976,19 @@ exports.getCsvFileById = [
                 return res.status(404).send({ message: "File not found." });
             }
 
-            const filePath = path.resolve(file.path);
-            res.setHeader("Content-Type", file.mimetype);
-            res.setHeader("Content-Disposition", "attachment; filename=" + file.originalname);
-
-            fs.createReadStream(filePath).pipe(res);
+            if (file.content) {
+                // If content is stored in the database, send it directly from the buffer
+                res.setHeader("Content-Type", file.mimetype);
+                res.setHeader("Content-Disposition", `attachment; filename="${file.originalname}"`);
+                res.send(file.content);
+            } else if (file.path && fs.existsSync(file.path)) {
+                // Fallback to filesystem if content is not stored in the database
+                res.setHeader("Content-Type", file.mimetype);
+                res.setHeader("Content-Disposition", `attachment; filename="${file.originalname}"`);
+                fs.createReadStream(file.path).pipe(res);
+            } else {
+                return res.status(404).send({ message: "File content not found." });
+            }
         } catch (error) {
             console.error("Error retrieving file:", error);
             res.status(500).send({ message: "Error retrieving file", error });
