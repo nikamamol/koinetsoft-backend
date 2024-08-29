@@ -909,7 +909,6 @@ exports.getCsvByRAFiles = [
 ];
 
 
-
 exports.getCsvFiles = [
     verifyToken, // Add token verification middleware here
     async(req, res) => {
@@ -966,7 +965,7 @@ exports.getExcelFiles = async(req, res) => {
 };
 // GET API to retrieve a specific CSV file by ID
 exports.getCsvFileById = [
-    verifyToken, // Add token verification middleware here
+    verifyToken,
     async(req, res) => {
         try {
             const fileId = req.params.id;
@@ -976,19 +975,17 @@ exports.getCsvFileById = [
                 return res.status(404).send({ message: "File not found." });
             }
 
+            const filePath = path.resolve(file.path);
             res.setHeader("Content-Type", file.mimetype);
-            res.setHeader(
-                "Content-Disposition",
-                "attachment; filename=" + file.originalname
-            );
-            fs.createReadStream(file.path).pipe(res);
+            res.setHeader("Content-Disposition", "attachment; filename=" + file.originalname);
+
+            fs.createReadStream(filePath).pipe(res);
         } catch (error) {
             console.error("Error retrieving file:", error);
             res.status(500).send({ message: "Error retrieving file", error });
         }
     },
 ];
-
 // create campaign
 
 const campaignStorage = multer.diskStorage({
