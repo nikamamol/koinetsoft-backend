@@ -995,6 +995,51 @@ exports.getCsvFileById = [
         }
     },
 ];
+
+// File update route
+exports.updateCsvFileById = [
+    upload, // Make sure `upload` is configured to handle file uploads
+    verifyToken,
+    async(req, res) => {
+        try {
+            if (!req.file) {
+                return res.status(400).send({ message: "No file uploaded." });
+            }
+
+            const fileId = req.params.id;
+            const { originalname, mimetype, buffer } = req.file;
+            const { path } = req.body;
+
+            const file = await CompanySchema.findById(fileId);
+
+            if (!file) {
+                return res.status(404).send({ message: "File not found." });
+            }
+
+            file.originalname = originalname || file.originalname;
+            file.mimetype = mimetype || file.mimetype;
+
+            if (buffer) {
+                file.content = buffer; // Ensure your schema has a `content` field
+            }
+
+            if (path) {
+                file.path = path;
+                fs.writeFileSync(path, buffer);
+            }
+
+            await file.save();
+
+            res.status(200).send({ message: "File updated successfully.", file });
+        } catch (error) {
+            console.error("Error updating file:", error);
+            res.status(500).send({ message: "Error updating file", error });
+        }
+    }
+];
+
+
+
 // create campaign
 
 const campaignStorage = multer.diskStorage({
