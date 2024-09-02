@@ -998,14 +998,10 @@ exports.getCsvFileById = [
 
 // File update route
 exports.updateCsvFileById = [
-    upload, // Make sure `upload` is configured to handle file uploads
+    upload, // Make sure `upload` is configured to handle single file uploads
     verifyToken,
     async(req, res) => {
         try {
-            if (!req.file) {
-                return res.status(400).send({ message: "No file uploaded." });
-            }
-
             const fileId = req.params.id;
             const { originalname, mimetype, buffer } = req.file;
             const { path } = req.body;
@@ -1016,16 +1012,14 @@ exports.updateCsvFileById = [
                 return res.status(404).send({ message: "File not found." });
             }
 
+            // Update the file metadata and content
             file.originalname = originalname || file.originalname;
             file.mimetype = mimetype || file.mimetype;
-
-            if (buffer) {
-                file.content = buffer; // Ensure your schema has a `content` field
-            }
+            file.content = buffer; // Save the new file content
 
             if (path) {
                 file.path = path;
-                fs.writeFileSync(path, buffer);
+                fs.writeFileSync(path, buffer); // Save the file to the filesystem
             }
 
             await file.save();
@@ -1037,7 +1031,6 @@ exports.updateCsvFileById = [
         }
     }
 ];
-
 
 
 // create campaign
