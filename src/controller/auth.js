@@ -976,22 +976,25 @@ exports.getCsvFileById = [
                 return res.status(404).send({ message: "File not found." });
             }
 
-            if (file.content) {
-                // If content is stored in the database, send it directly from the buffer
+            // Check if the content is stored in the database
+            if (file.content && file.content.length > 0) {
                 res.setHeader("Content-Type", file.mimetype);
-                res.setHeader("Content-Disposition", `attachment; filename="${file.originalname}"`);
-                res.send(file.content);
-            } else if (file.path && fs.existsSync(file.path)) {
-                // Fallback to filesystem if content is not stored in the database
-                res.setHeader("Content-Type", file.mimetype);
-                res.setHeader("Content-Disposition", `attachment; filename="${file.originalname}"`);
-                fs.createReadStream(file.path).pipe(res);
-            } else {
-                return res.status(404).send({ message: "File content not found." });
+                res.setHeader("Content-Disposition", `attachment; filename="${file.filename}"`);
+                return res.send(file.content);
             }
+
+            // Check if the file path is stored and the file exists on the filesystem
+            if (file.path && fs.existsSync(file.path)) {
+                res.setHeader("Content-Type", file.mimetype);
+                res.setHeader("Content-Disposition", `attachment; filename="${file.filename}"`);
+                return fs.createReadStream(file.path).pipe(res);
+            }
+
+            // If neither the content nor the path is available
+            return res.status(404).send({ message: "File content not found." });
         } catch (error) {
             console.error("Error retrieving file:", error);
-            res.status(500).send({ message: "Error retrieving file", error });
+            return res.status(500).send({ message: "Error retrieving file", error });
         }
     },
 ];
