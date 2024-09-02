@@ -40,6 +40,8 @@ const {
     getUserData,
     getCurrentUser,
     getCsvByRAFiles,
+    getExcelFiles,
+    updateCsvFileById,
 } = require("../controller/auth");
 const authenticateToken = require("../middleware/authMeddile");
 
@@ -82,10 +84,10 @@ UserAuthRouter.post("/uploadcsv", uploadCsv);
 UserAuthRouter.get("/csvFileData", getCsvByRAFiles);
 UserAuthRouter.get("/csvFileAllData", getCsvFiles);
 UserAuthRouter.get("/csvFileData/:id", getCsvFileById);
-UserAuthRouter.put("/qualityCheck/:id", qualityCheck);
 UserAuthRouter.put("/updateStatus/:id", updateStatus);
-UserAuthRouter.put("/emailCheck/:id", emailCheck);
-UserAuthRouter.delete('/csvFileData/:id', deleteFile);;
+UserAuthRouter.delete('/csvFileData/:id', deleteFile);
+UserAuthRouter.get('/readexcel/:id', getExcelFiles);
+UserAuthRouter.put('/updateCsvFileById/:id', updateCsvFileById);
 
 // create template
 UserAuthRouter.post("/createTemplate", addTemplate);
