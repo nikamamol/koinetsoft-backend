@@ -16,6 +16,8 @@ const CompanySchema = require("../model/CsvData");
 const CampaignSchema = require("../model/CampaignSchema");
 const Template = require("../model/CreateTemplate");
 const authenticateToken = require("../middleware/auth");
+const operationCsvFile = require("../model/OperationCsv");
+const OperationCsvFile = require("../model/OperationCsv");
 
 require("dotenv").config();
 
@@ -860,7 +862,6 @@ exports.deleteFile = [authenticateToken, async(req, res) => {
 }];
 
 
-
 const authenticateToken1 = (req, res, next) => {
     const authHeader = req.headers['authorization'];
     if (!authHeader) {
@@ -1002,41 +1003,158 @@ exports.getCsvFileById = [
 ];
 // File update route
 exports.updateCsvFileById = [
-    upload, // Make sure `upload` is configured to handle single file uploads
     verifyToken,
     async(req, res) => {
         try {
             const fileId = req.params.id;
-            const { originalname, mimetype, buffer } = req.file;
-            const { path } = req.body;
+            const { originalname, mimetype, buffer } = req.file || {};
+            const { filePath } = req.body || {};
 
+            // Find the file by ID
             const file = await CompanySchema.findById(fileId);
 
             if (!file) {
-                return res.status(404).send({ message: "File not found." });
+                return res.status(404).json({ message: "File not found." });
             }
 
-            // Update the file metadata and content
-            file.originalname = originalname || file.originalname;
-            file.mimetype = mimetype || file.mimetype;
-            file.content = buffer; // Save the new file content
+            // Update file metadata
+            if (originalname) file.originalname = originalname;
+            if (mimetype) file.mimetype = mimetype;
 
-            if (path) {
-                file.path = path;
-                fs.writeFileSync(path, buffer); // Save the file to the filesystem
+            // Update file content if buffer is provided
+            if (buffer) {
+                file.content = buffer; // Update in-memory content
+
+                // Save to filesystem if a path is provided
+                if (filePath) {
+                    // Ensure directory exists
+                    const dir = path.dirname(filePath);
+                    if (!fs.existsSync(dir)) {
+                        fs.mkdirSync(dir, { recursive: true });
+                    }
+
+                    // Write buffer to the specified file path
+                    fs.writeFileSync(filePath, buffer);
+                    file.path = filePath; // Update the path in the database
+                }
             }
 
-            await file.save();
+            // Save the updated file metadata and content to the database
+            const updatedFile = await file.save();
 
-            res.status(200).send({ message: "File updated successfully.", file });
+            // Log the updated file data in the console
+            // console.log("Updated file data:", updatedFile);
+
+            res.status(200).json({ message: "File updated successfully.", file: updatedFile });
         } catch (error) {
             console.error("Error updating file:", error);
-            res.status(500).send({ message: "Error updating file", error });
+            res.status(500).json({ message: "Error updating file", error: error.message });
         }
     }
 ];
 
+// operation team upload file 
 
+exports.uploadOperationCsvFile = [
+    upload, // Ensure the correct field name is used here
+    async(req, res) => {
+        try {
+            const authHeader = req.headers['authorization'];
+            if (!authHeader) {
+                return res.status(401).send({ message: "Unauthorized. Token required." });
+            }
+
+            const token = authHeader.split(' ')[1];
+            if (!token) {
+                return res.status(401).send({ message: "Unauthorized. Token missing." });
+            }
+
+            const decoded = await verifyToken(token, process.env.JWT_KEY);
+            const userId = decoded.userId;
+
+            await handleFileUploadByOperation(req, res, userId);
+        } catch (error) {
+            console.error("Error in token validation:", error);
+            res.status(500).send({ message: "Internal server error during token validation", error });
+        }
+    },
+];
+
+async function handleFileUploadByOperation(req, res, userId) {
+    try {
+        const { campaignName, campaignCode } = req.body;
+
+        if (!req.file) {
+            return res.status(400).send({ message: "No file uploaded." });
+        }
+
+        if (!campaignName || !campaignCode) {
+            return res.status(400).send({ message: "Missing campaign name or campaign code." });
+        }
+
+        const file = req.file;
+
+        // Read file content
+        let fileContent;
+        try {
+            fileContent = fs.readFileSync(file.path);
+        } catch (readError) {
+            console.error("Error reading file content:", readError);
+            return res.status(500).send({ message: "Error reading file content", error: readError });
+        }
+
+        // Create a new document in the database
+        const newFile = new OperationCsvFile({
+            filename: file.filename,
+            originalname: file.originalname,
+            mimetype: file.mimetype,
+            size: file.size,
+            path: file.path,
+            content: fileContent,
+            campaignName,
+            campaignCode,
+            userId,
+        });
+
+        await newFile.save();
+
+        // Optionally delete the file from the filesystem
+        fs.unlink(file.path, (err) => {
+            if (err) {
+                console.error("Failed to delete file after storing:", err);
+            }
+        });
+
+        res.status(200).send({
+            message: "File uploaded and stored successfully",
+            file: newFile,
+        });
+    } catch (error) {
+        console.error("Error uploading or storing file:", error);
+        res.status(500).send({ message: "Internal server error during file upload or storage", error });
+    }
+}
+
+exports.getCsvFilesByOperation = [
+    verifyToken, // Add token verification middleware here
+    async(req, res) => {
+        try {
+            const files = await OperationCsvFile.find();
+
+            if (!files || files.length === 0) {
+                return res.status(404).send({ message: "No files found." });
+            }
+
+            res.status(200).send({
+                message: "Files retrieved successfully",
+                files: files,
+            });
+        } catch (error) {
+            console.error("Error retrieving files:", error);
+            res.status(500).send({ message: "Error retrieving files", error });
+        }
+    },
+];
 // create campaign
 
 const campaignStorage = multer.diskStorage({
