@@ -1056,7 +1056,7 @@ exports.updateCsvFileById = [
 // operation team upload file 
 
 exports.uploadOperationCsvFile = [
-    upload, // Ensure the correct field name is used here
+    upload, // Expecting a single file with field name 'file'
     async(req, res) => {
         try {
             const authHeader = req.headers['authorization'];
@@ -1069,10 +1069,14 @@ exports.uploadOperationCsvFile = [
                 return res.status(401).send({ message: "Unauthorized. Token missing." });
             }
 
-            const decoded = await verifyToken(token, process.env.JWT_KEY);
-            const userId = decoded.userId;
+            jwt.verify(token, process.env.JWT_KEY, async(err, decoded) => {
+                if (err) {
+                    return res.status(401).send({ message: "Unauthorized. Invalid token." });
+                }
 
-            await handleFileUploadByOperation(req, res, userId);
+                const userId = decoded.userId;
+                await handleFileUploadByOperation(req, res, userId);
+            });
         } catch (error) {
             console.error("Error in token validation:", error);
             res.status(500).send({ message: "Internal server error during token validation", error });
@@ -1117,13 +1121,6 @@ async function handleFileUploadByOperation(req, res, userId) {
         });
 
         await newFile.save();
-
-        // Optionally delete the file from the filesystem
-        fs.unlink(file.path, (err) => {
-            if (err) {
-                console.error("Failed to delete file after storing:", err);
-            }
-        });
 
         res.status(200).send({
             message: "File uploaded and stored successfully",
