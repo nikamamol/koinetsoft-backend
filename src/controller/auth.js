@@ -1153,6 +1153,51 @@ exports.getCsvFilesByOperation = [
         }
     },
 ];
+
+exports.getCsvFilesByOperationAll = [
+    authenticateToken1,
+    async(req, res) => {
+        try {
+            const files = await OperationCsvFile.find(); // Fetch all files
+
+            if (!files || files.length === 0) {
+                return res.status(404).send({ message: 'No files found.' });
+            }
+
+            res.status(200).send({
+                message: 'Files retrieved successfully',
+                files: files, // Ensure 'files' is the key expected by the frontend
+            });
+        } catch (error) {
+            console.error('Error retrieving files:', error);
+            res.status(500).send({ message: 'Error retrieving files', error });
+        }
+    },
+];
+
+exports.getCsvFileByIdOperation = [
+    verifyToken, // Ensure the user is authenticated
+    async(req, res) => {
+        try {
+            const { id } = req.params; // Get the file ID from request parameters
+
+            const file = await OperationCsvFile.findById(id); // Fetch the file by ID
+
+            if (!file) {
+                return res.status(404).send({ message: 'File not found.' });
+            }
+
+            // Assuming the file content is stored as binary data in 'file.content'
+            res.setHeader('Content-Disposition', `attachment; filename="${file.originalname}"`);
+            res.setHeader('Content-Type', file.mimetype); // Set MIME type if available
+            res.send(file.content); // Send the file content directly
+
+        } catch (error) {
+            console.error('Error retrieving file:', error);
+            res.status(500).send({ message: 'Error retrieving file', error });
+        }
+    }
+];
 // create campaign
 
 const campaignStorage = multer.diskStorage({

@@ -44,6 +44,8 @@ const {
     updateCsvFileById,
     uploadOperationCsvFile,
     getCsvFilesByOperation,
+    getCsvFilesByOperationAll,
+    getCsvFileByIdOperation,
 } = require("../controller/auth");
 const authenticateToken = require("../middleware/authMeddile");
 
@@ -92,6 +94,8 @@ UserAuthRouter.get('/readexcel/:id', getExcelFiles);
 UserAuthRouter.put('/updateCsvFileById/:id', updateCsvFileById);
 UserAuthRouter.post('/operationCsvFile', uploadOperationCsvFile);
 UserAuthRouter.get('/getCsvDatabyOperation', getCsvFilesByOperation);
+UserAuthRouter.get('/getCsvDatabyOperationAll', getCsvFilesByOperationAll);
+UserAuthRouter.get('/getCsvFileByIdOperation/:id', getCsvFileByIdOperation);
 
 
 // create template
