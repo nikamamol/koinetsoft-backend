@@ -1133,14 +1133,15 @@ async function handleFileUploadByOperation(req, res, userId) {
 }
 
 exports.getCsvFilesByOperation = [
-    verifyToken, // Add token verification middleware here
+    authenticateToken1, // Add token verification middleware here
     async(req, res) => {
+        const { userId } = req;
         try {
-            const files = await OperationCsvFile.find();
+            const files = await OperationCsvFile.find({ userId });
 
-            if (!files || files.length === 0) {
-                return res.status(404).send({ message: "No files found." });
-            }
+            // if (!files || files.length === 0) {
+            //     return res.status(404).send({ message: "No files found." });
+            // }
 
             res.status(200).send({
                 message: "Files retrieved successfully",
