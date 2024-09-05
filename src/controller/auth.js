@@ -969,36 +969,31 @@ exports.getExcelFiles = async(req, res) => {
 // GET API to retrieve a specific CSV file by ID
 
 exports.getCsvFileById = [
-    verifyToken, // Ensure token verification is handled correctly in production
+    verifyToken, // Add token verification middleware if needed
     async(req, res) => {
         try {
             const fileId = req.params.id;
             const file = await CompanySchema.findById(fileId);
 
             if (!file) {
-                console.error(`File with ID ${fileId} not found in the database.`);
                 return res.status(404).send({ message: "File not found." });
             }
 
-            // Log the file details
-            console.log(`File found: ${file.filename}, Content length: ${file.content?.length}, Path: ${file.path}`);
-
-            // If file content is stored in the database
+            // Check if the content is stored in the database
             if (file.content && file.content.length > 0) {
-                res.setHeader("Content-Type", file.mimetype || "application/octet-stream");
+                res.setHeader("Content-Type", file.mimetype);
                 res.setHeader("Content-Disposition", `attachment; filename="${file.filename}"`);
-                return res.send(file.content); // Send the file content
+                return res.send(file.content);
             }
 
-            // If the file is stored on the filesystem and the path exists
+            // Check if the file path is stored and the file exists on the filesystem
             if (file.path && fs.existsSync(file.path)) {
-                res.setHeader("Content-Type", file.mimetype || "application/octet-stream");
+                res.setHeader("Content-Type", file.mimetype);
                 res.setHeader("Content-Disposition", `attachment; filename="${file.filename}"`);
-                return fs.createReadStream(file.path).pipe(res); // Stream the file from the filesystem
+                return fs.createReadStream(file.path).pipe(res);
             }
 
-            // If neither content nor path is available
-            console.error(`File content or path not found for file ID: ${fileId}`);
+            // If neither the content nor the path is available
             return res.status(404).send({ message: "File content not found." });
         } catch (error) {
             console.error("Error retrieving file:", error);
