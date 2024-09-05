@@ -981,7 +981,7 @@ exports.getCsvFileById = [
 
             // Check if the content is stored in the database
             if (file.content && file.content.length > 0) {
-                res.setHeader("Content-Type", file.mimetype);
+                res.setHeader("Content-Type", "application/xml");
                 res.setHeader("Content-Disposition", `attachment; filename="${file.filename}"`);
                 return res.send(file.content);
             }
