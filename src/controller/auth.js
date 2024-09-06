@@ -1001,6 +1001,40 @@ exports.getCsvFileById = [
         }
     },
 ];
+
+exports.downloadCsvFileById = [
+    verifyToken, // Add token verification middleware if needed
+    async(req, res) => {
+        try {
+            const fileId = req.params.id;
+            const file = await CompanySchema.findById(fileId);
+
+            if (!file) {
+                return res.status(404).send({ message: "File not found." });
+            }
+
+            // Check if the content is stored in the database
+            if (file.content && file.content.length > 0) {
+                res.setHeader("Content-Type", "text/csv");
+                res.setHeader("Content-Disposition", `attachment; filename="${file.filename}"`);
+                return res.send(file.content);
+            }
+
+            // Check if the file path is stored and the file exists on the filesystem
+            if (file.path && fs.existsSync(file.path)) {
+                res.setHeader("Content-Type", "text/csv");
+                res.setHeader("Content-Disposition", `attachment; filename="${file.filename}"`);
+                return fs.createReadStream(file.path).pipe(res);
+            }
+
+            // If neither the content nor the path is available
+            return res.status(404).send({ message: "File content not found." });
+        } catch (error) {
+            console.error("Error retrieving file:", error);
+            return res.status(500).send({ message: "Error retrieving file", error });
+        }
+    },
+];
 // File update route
 exports.updateCsvFileById = [
     verifyToken,

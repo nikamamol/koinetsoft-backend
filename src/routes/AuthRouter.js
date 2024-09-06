@@ -46,6 +46,7 @@ const {
     getCsvFilesByOperation,
     getCsvFilesByOperationAll,
     getCsvFileByIdOperation,
+    downloadCsvFileById,
 } = require("../controller/auth");
 const authenticateToken = require("../middleware/authMeddile");
 
@@ -88,6 +89,7 @@ UserAuthRouter.post("/uploadcsv", uploadCsv);
 UserAuthRouter.get("/csvFileData", getCsvByRAFiles);
 UserAuthRouter.get("/csvFileAllData", getCsvFiles);
 UserAuthRouter.get("/csvFileData/:id", getCsvFileById);
+UserAuthRouter.get("/downloadCsvFileById/:id", downloadCsvFileById);
 UserAuthRouter.put("/updateStatus/:id", updateStatus);
 UserAuthRouter.delete('/csvFileData/:id', deleteFile);
 UserAuthRouter.get('/readexcel/:id', getExcelFiles);
