@@ -1036,6 +1036,7 @@ exports.downloadCsvFileById = [
     },
 ];
 // File update route
+
 exports.updateCsvFileById = [
     verifyToken,
     async(req, res) => {
@@ -1046,7 +1047,9 @@ exports.updateCsvFileById = [
 
             // Find the file by ID
             const file = await CompanySchema.findById(fileId);
-
+            // console.log(filePath)
+            // console.log(file)
+            // console.log(fileId)
             if (!file) {
                 return res.status(404).json({ message: "File not found." });
             }
@@ -1075,9 +1078,6 @@ exports.updateCsvFileById = [
 
             // Save the updated file metadata and content to the database
             const updatedFile = await file.save();
-
-            // Log the updated file data in the console
-            // console.log("Updated file data:", updatedFile);
 
             res.status(200).json({ message: "File updated successfully.", file: updatedFile });
         } catch (error) {
