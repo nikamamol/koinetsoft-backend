@@ -1431,39 +1431,43 @@ exports.getCampaignById = async(req, res) => {
             return res.status(404).json({ message: "Campaign not found" });
         }
 
-        // Respond with the campaign data, including the file paths
-        res.status(200).json({
+        // Convert binary data (Buffer) to base64 strings for easier transport in JSON
+        const campaignWithFileContent = {
             ...campaign._doc,
             assets: campaign.assets.map(asset => ({
                 ...asset,
-                downloadLink: `${req.protocol}://${req.get('host')}/download?file=${asset.path}`
+                content: asset.content.toString('base64') // Convert to base64
             })),
             script: campaign.script.map(script => ({
                 ...script,
-                downloadLink: `${req.protocol}://${req.get('host')}/download?file=${script.path}`
+                content: script.content.toString('base64')
             })),
             suppression: campaign.suppression.map(suppression => ({
                 ...suppression,
-                downloadLink: `${req.protocol}://${req.get('host')}/download?file=${suppression.path}`
+                content: suppression.content.toString('base64')
             })),
             tal: campaign.tal.map(tal => ({
                 ...tal,
-                downloadLink: `${req.protocol}://${req.get('host')}/download?file=${tal.path}`
+                content: tal.content.toString('base64')
             })),
             suppressionList: campaign.suppressionList.map(suppressionList => ({
                 ...suppressionList,
-                downloadLink: `${req.protocol}://${req.get('host')}/download?file=${suppressionList.path}`
+                content: suppressionList.content.toString('base64')
             })),
             abmList: campaign.abmList.map(abmList => ({
                 ...abmList,
-                downloadLink: `${req.protocol}://${req.get('host')}/download?file=${abmList.path}`
+                content: abmList.content.toString('base64')
             }))
-        });
+        };
+
+        // Send the campaign details with the file content in base64 format
+        res.status(200).json(campaignWithFileContent);
     } catch (error) {
         console.error("Error fetching campaign details:", error);
         res.status(500).json({ message: "Error fetching campaign details", error });
     }
 };
+
 
 // template
 exports.addTemplate = async(req, res) => {
