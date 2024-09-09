@@ -1422,24 +1422,50 @@ exports.updateCampaignById = [
 
 exports.getCampaignById = async(req, res) => {
     try {
-        const { id } = req.params; // Extract the campaign ID from the request parameters
+        const { id } = req.params;
 
         // Find the campaign by ID
         const campaign = await CampaignSchema.findById(id);
 
         if (!campaign) {
-            // If no campaign is found, respond with a 404 status and an error message
             return res.status(404).json({ message: "Campaign not found" });
         }
 
-        // Respond with the found campaign details
-        res.status(200).json(campaign);
+        // Respond with the campaign data, including the file paths
+        res.status(200).json({
+            ...campaign._doc,
+            assets: campaign.assets.map(asset => ({
+                ...asset,
+                downloadLink: `${req.protocol}://${req.get('host')}/download?file=${asset.path}`
+            })),
+            script: campaign.script.map(script => ({
+                ...script,
+                downloadLink: `${req.protocol}://${req.get('host')}/download?file=${script.path}`
+            })),
+            suppression: campaign.suppression.map(suppression => ({
+                ...suppression,
+                downloadLink: `${req.protocol}://${req.get('host')}/download?file=${suppression.path}`
+            })),
+            tal: campaign.tal.map(tal => ({
+                ...tal,
+                downloadLink: `${req.protocol}://${req.get('host')}/download?file=${tal.path}`
+            })),
+            suppressionList: campaign.suppressionList.map(suppressionList => ({
+                ...suppressionList,
+                downloadLink: `${req.protocol}://${req.get('host')}/download?file=${suppressionList.path}`
+            })),
+            abmList: campaign.abmList.map(abmList => ({
+                ...abmList,
+                downloadLink: `${req.protocol}://${req.get('host')}/download?file=${abmList.path}`
+            }))
+        });
     } catch (error) {
         console.error("Error fetching campaign details:", error);
         res.status(500).json({ message: "Error fetching campaign details", error });
     }
 };
 
+// template
 exports.addTemplate = async(req, res) => {
     try {
         const newTemplate = new Template(req.body);
