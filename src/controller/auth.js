@@ -1440,7 +1440,6 @@ exports.getCampaignById = async(req, res) => {
     }
 };
 
-// template
 exports.addTemplate = async(req, res) => {
     try {
         const newTemplate = new Template(req.body);
