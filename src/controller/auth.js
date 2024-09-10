@@ -1440,6 +1440,26 @@ exports.getCampaignById = async(req, res) => {
     }
 };
 
+
+exports.downloadCampaignFile = async(req, res) => {
+    const { id } = req.params;
+    // Fetch the file from the database using the fileId
+    const fileData = await CampaignSchema.findById(id);
+
+    if (!fileData) {
+        return res.status(404).send('File not found');
+    }
+
+    // Set appropriate headers
+    res.set({
+        'Content-Type': fileData.mimeType,
+        'Content-Disposition': `attachment; filename="${fileData.originalName}"`,
+    });
+
+    // Send the file as response
+    res.send(fileData.data); // Assuming the file data is stored in a buffer
+}
+
 exports.addTemplate = async(req, res) => {
     try {
         const newTemplate = new Template(req.body);

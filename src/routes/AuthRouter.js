@@ -47,6 +47,7 @@ const {
     getCsvFilesByOperationAll,
     getCsvFileByIdOperation,
     downloadCsvFileById,
+    downloadCampaignFile,
 } = require("../controller/auth");
 const authenticateToken = require("../middleware/authMeddile");
 
@@ -83,6 +84,7 @@ UserAuthRouter.post("/createcampaign", createCampaign);
 UserAuthRouter.get('/getCampaignsData', getAllCampaigns);
 UserAuthRouter.get('/getCampaignsDataById/:id', getCampaignById);
 UserAuthRouter.put('/updateCampaignById/:id', updateCampaignById);
+UserAuthRouter.get('/downloadCampaignFile/:id', downloadCampaignFile);
 
 // rpf 
 UserAuthRouter.post("/uploadcsv", uploadCsv);
