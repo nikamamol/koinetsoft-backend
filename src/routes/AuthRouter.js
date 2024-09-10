@@ -84,7 +84,6 @@ UserAuthRouter.post("/createcampaign", createCampaign);
 UserAuthRouter.get('/getCampaignsData', getAllCampaigns);
 UserAuthRouter.get('/getCampaignsDataById/:id', getCampaignById);
 UserAuthRouter.put('/updateCampaignById/:id', updateCampaignById);
-UserAuthRouter.get('/downloadCampaignFile/:id', downloadCampaignFile);
 
 // rpf 
 UserAuthRouter.post("/uploadcsv", uploadCsv);

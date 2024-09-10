@@ -1419,46 +1419,6 @@ const getMimeType = (extension) => {
     return mimeTypes[extension] || 'application/octet-stream';
 };
 
-exports.downloadCampaignFile = async(req, res) => {
-    const { id } = req.params;
-
-    try {
-        // Fetch the file from the database using the fileId
-        const fileData = await CampaignSchema.findById(id);
-
-        if (!fileData) {
-            return res.status(404).send({ message: 'File not found' });
-        }
-
-        const fileExtension = path.extname(fileData.originalName); // Extract file extension
-        const mimeType = getMimeType(fileExtension); // Get the appropriate MIME type
-
-        // Set appropriate headers
-        res.set({
-            'Content-Type': mimeType,
-            'Content-Disposition': `attachment; filename="${fileData.originalName}"`,
-        });
-
-        // Check if file data is stored in the database
-        if (fileData.data && fileData.data.length > 0) {
-            // Send the buffer as a response
-            return res.send(fileData.data);
-        }
-
-        // Check if file path is stored and the file exists on the filesystem
-        if (fileData.path && fs.existsSync(fileData.path)) {
-            return fs.createReadStream(fileData.path).pipe(res);
-        }
-
-        // If neither content nor path is available
-        return res.status(404).send({ message: 'File content not found' });
-
-    } catch (error) {
-        console.error('Error retrieving file:', error);
-        return res.status(500).send({ message: 'Error retrieving file', error });
-    }
-};
-
 
 exports.addTemplate = async(req, res) => {
     try {
