@@ -1256,60 +1256,27 @@ exports.createCampaign = [
     ]),
     async(req, res) => {
         try {
-            // Create campaign document
+            const processFiles = (files) => {
+                return files ? files.map(file => ({
+                    filename: file.filename,
+                    originalname: file.originalname,
+                    mimetype: file.mimetype,
+                    size: file.size,
+                    path: file.path,
+                    content: fs.readFileSync(file.path), // Read file content
+                })) : [];
+            };
+
             const campaign = new CampaignSchema({
                 ...req.body,
-                assets: req.files["assets"] ?
-                    req.files["assets"].map((file) => ({
-                        name: file.filename,
-                        originalName: file.originalname,
-                        mimeType: file.mimetype,
-                        size: file.size,
-                        path: file.path,
-                    })) : [],
-                script: req.files["script"] ?
-                    req.files["script"].map((file) => ({
-                        name: file.filename,
-                        originalName: file.originalname,
-                        mimeType: file.mimetype,
-                        size: file.size,
-                        path: file.path,
-                    })) : [],
-                suppression: req.files["suppression"] ?
-                    req.files["suppression"].map((file) => ({
-                        name: file.filename,
-                        originalName: file.originalname,
-                        mimeType: file.mimetype,
-                        size: file.size,
-                        path: file.path,
-                    })) : [],
-                tal: req.files["tal"] ?
-                    req.files["tal"].map((file) => ({
-                        name: file.filename,
-                        originalName: file.originalname,
-                        mimeType: file.mimetype,
-                        size: file.size,
-                        path: file.path,
-                    })) : [],
-                suppressionList: req.files["suppressionList"] ?
-                    req.files["suppressionList"].map((file) => ({
-                        name: file.filename,
-                        originalName: file.originalname,
-                        mimeType: file.mimetype,
-                        size: file.size,
-                        path: file.path,
-                    })) : [],
-                abmList: req.files["abmList"] ?
-                    req.files["abmList"].map((file) => ({
-                        name: file.filename,
-                        originalName: file.originalname,
-                        mimeType: file.mimetype,
-                        size: file.size,
-                        path: file.path,
-                    })) : [],
+                assets: processFiles(req.files["assets"]),
+                script: processFiles(req.files["script"]),
+                suppression: processFiles(req.files["suppression"]),
+                tal: processFiles(req.files["tal"]),
+                suppressionList: processFiles(req.files["suppressionList"]),
+                abmList: processFiles(req.files["abmList"]),
             });
 
-            // Save campaign
             const savedCampaign = await campaign.save();
             res.status(201).json(savedCampaign);
         } catch (error) {
@@ -1441,24 +1408,57 @@ exports.getCampaignById = async(req, res) => {
 };
 
 
+const getMimeType = (extension) => {
+    const mimeTypes = {
+        '.pdf': 'application/pdf',
+        '.csv': 'text/csv',
+        '.doc': 'application/msword',
+        '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        // Add other MIME types as needed
+    };
+    return mimeTypes[extension] || 'application/octet-stream';
+};
+
 exports.downloadCampaignFile = async(req, res) => {
     const { id } = req.params;
-    // Fetch the file from the database using the fileId
-    const fileData = await CampaignSchema.findById(id);
 
-    if (!fileData) {
-        return res.status(404).send('File not found');
+    try {
+        // Fetch the file from the database using the fileId
+        const fileData = await CampaignSchema.findById(id);
+
+        if (!fileData) {
+            return res.status(404).send({ message: 'File not found' });
+        }
+
+        const fileExtension = path.extname(fileData.originalName); // Extract file extension
+        const mimeType = getMimeType(fileExtension); // Get the appropriate MIME type
+
+        // Set appropriate headers
+        res.set({
+            'Content-Type': mimeType,
+            'Content-Disposition': `attachment; filename="${fileData.originalName}"`,
+        });
+
+        // Check if file data is stored in the database
+        if (fileData.data && fileData.data.length > 0) {
+            // Send the buffer as a response
+            return res.send(fileData.data);
+        }
+
+        // Check if file path is stored and the file exists on the filesystem
+        if (fileData.path && fs.existsSync(fileData.path)) {
+            return fs.createReadStream(fileData.path).pipe(res);
+        }
+
+        // If neither content nor path is available
+        return res.status(404).send({ message: 'File content not found' });
+
+    } catch (error) {
+        console.error('Error retrieving file:', error);
+        return res.status(500).send({ message: 'Error retrieving file', error });
     }
+};
 
-    // Set appropriate headers
-    res.set({
-        'Content-Type': fileData.mimeType,
-        'Content-Disposition': `attachment; filename="${fileData.originalName}"`,
-    });
-
-    // Send the file as response
-    res.send(fileData.data); // Assuming the file data is stored in a buffer
-}
 
 exports.addTemplate = async(req, res) => {
     try {
