@@ -48,6 +48,7 @@ const {
     getCsvFileByIdOperation,
     downloadCsvFileById,
     downloadCampaignFile,
+    uploadCsvByQuality,
 } = require("../controller/auth");
 const authenticateToken = require("../middleware/authMeddile");
 
@@ -99,6 +100,9 @@ UserAuthRouter.post('/operationCsvFile', uploadOperationCsvFile);
 UserAuthRouter.get('/getCsvDatabyOperation', getCsvFilesByOperation);
 UserAuthRouter.get('/getCsvDatabyOperationAll', getCsvFilesByOperationAll);
 UserAuthRouter.get('/getCsvFileByIdOperation/:id', getCsvFileByIdOperation);
+
+
+// UserAuthRouter.post('/uploadCsvByQuality', uploadCsvByQuality);
 
 
 // create template
