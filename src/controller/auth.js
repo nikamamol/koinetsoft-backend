@@ -18,6 +18,9 @@ const Template = require("../model/CreateTemplate");
 const authenticateToken = require("../middleware/auth");
 const operationCsvFile = require("../model/OperationCsv");
 const OperationCsvFile = require("../model/OperationCsv");
+const InvoiceSchema = require("../model/InvoiceSchema");
+const Invoice = require("../model/InvoiceSchema");
+
 
 require("dotenv").config();
 
@@ -1456,3 +1459,15 @@ exports.getTemplateById = async(req, res) => {
 
 // upload csv file in campaign
 // *************************************************************************************************
+
+// Invoice 
+
+exports.createInvoice = async(req, res) => {
+    try {
+        const newInvoice = new Invoice(req.body);
+        await newInvoice.save();
+        res.status(201).json({ message: 'Invoice created successfully', data: newInvoice });
+    } catch (error) {
+        res.status(500).json({ message: 'Error creating invoice', error });
+    }
+}
