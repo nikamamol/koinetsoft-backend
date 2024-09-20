@@ -50,6 +50,8 @@ const {
     downloadCampaignFile,
     uploadCsvByQuality,
     createInvoice,
+    getInvoices,
+    getInvoiceById,
 } = require("../controller/auth");
 const authenticateToken = require("../middleware/authMeddile");
 
@@ -113,6 +115,8 @@ UserAuthRouter.get('/templates/:id', getTemplateById);
 
 // Invoice
 UserAuthRouter.post("/createInvoice", createInvoice);
+UserAuthRouter.get("/getInvoices", getInvoices);
+UserAuthRouter.get("/getInvoiceById/:id", getInvoiceById);
 
 
 module.exports = UserAuthRouter;

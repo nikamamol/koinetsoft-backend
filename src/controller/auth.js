@@ -1460,6 +1460,7 @@ exports.getTemplateById = async(req, res) => {
 // upload csv file in campaign
 // *************************************************************************************************
 
+
 // Invoice 
 
 exports.createInvoice = async(req, res) => {
@@ -1471,3 +1472,25 @@ exports.createInvoice = async(req, res) => {
         res.status(500).json({ message: 'Error creating invoice', error });
     }
 }
+
+exports.getInvoices = async(req, res) => {
+    try {
+        const invoices = await Invoice.find(); // Fetch all invoices
+        res.status(200).json({ message: 'Invoices retrieved successfully', data: invoices });
+    } catch (error) {
+        res.status(500).json({ message: 'Error retrieving invoices', error });
+    }
+};
+
+// GET request to retrieve a specific invoice by ID
+exports.getInvoiceById = async(req, res) => {
+    try {
+        const invoice = await Invoice.findById(req.params.id); // Find invoice by ID
+        if (!invoice) {
+            return res.status(404).json({ message: 'Invoice not found' });
+        }
+        res.status(200).json({ message: 'Invoice retrieved successfully', data: invoice });
+    } catch (error) {
+        res.status(500).json({ message: 'Error retrieving invoice', error });
+    }
+};

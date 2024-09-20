@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+
 const InvoiceSchema = new mongoose.Schema({
     logo: String,
     date: String,
@@ -8,14 +9,14 @@ const InvoiceSchema = new mongoose.Schema({
     items: [{
         qty: Number,
         description: String,
-        details: String,
         price: Number,
         total: Number,
-    }, ],
+    }],
     subTotal: Number,
     tax: Number,
     grandTotal: Number,
-    paymentMethod: String,
+    bankName: String,
+    accountNumber: String,
     terms: String,
 });
 
