@@ -1494,3 +1494,17 @@ exports.getInvoiceById = async(req, res) => {
         res.status(500).json({ message: 'Error retrieving invoice', error });
     }
 };
+exports.deleteInvoiceById = async(req, res) => {
+    try {
+        const invoiceId = req.params.id; // Get the invoice ID from the request parameters
+        const deletedInvoice = await Invoice.findByIdAndDelete(invoiceId); // Delete the invoice by ID
+
+        if (!deletedInvoice) {
+            return res.status(404).json({ message: 'Invoice not found' });
+        }
+
+        res.status(200).json({ message: 'Invoice deleted successfully', id: invoiceId });
+    } catch (error) {
+        res.status(500).json({ message: 'Error deleting invoice', error });
+    }
+};

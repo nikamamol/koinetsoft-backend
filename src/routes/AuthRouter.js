@@ -52,6 +52,7 @@ const {
     createInvoice,
     getInvoices,
     getInvoiceById,
+    deleteInvoiceById,
 } = require("../controller/auth");
 const authenticateToken = require("../middleware/authMeddile");
 
@@ -117,6 +118,7 @@ UserAuthRouter.get('/templates/:id', getTemplateById);
 UserAuthRouter.post("/createInvoice", createInvoice);
 UserAuthRouter.get("/getInvoices", getInvoices);
 UserAuthRouter.get("/getInvoiceById/:id", getInvoiceById);
+UserAuthRouter.delete("/deleteInvoiceById/:id", deleteInvoiceById);
 
 
 module.exports = UserAuthRouter;
