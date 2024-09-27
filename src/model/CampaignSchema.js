@@ -90,7 +90,7 @@ const campaignSchema = new mongoose.Schema({
             "Closed",
             "Upcoming",
         ],
-        default: "Active",
+        default: "Upcoming",
     },
 });
 

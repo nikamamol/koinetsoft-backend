@@ -21,7 +21,6 @@ const OperationCsvFile = require("../model/OperationCsv");
 const InvoiceSchema = require("../model/InvoiceSchema");
 const Invoice = require("../model/InvoiceSchema");
 
-
 require("dotenv").config();
 
 // Configure nodemailer
@@ -71,7 +70,12 @@ exports.login = async(req, res) => {
         if (token) {
             try {
                 const decodedToken = jwt.verify(token, process.env.JWT_KEY);
-                return res.status(200).send({ message: "User already authenticated", redirectTo: "/dashboard" });
+                return res
+                    .status(200)
+                    .send({
+                        message: "User already authenticated",
+                        redirectTo: "/dashboard",
+                    });
             } catch (err) {
                 // Token is invalid, proceed with login
                 console.error("Invalid token", err);
@@ -85,7 +89,10 @@ exports.login = async(req, res) => {
             return res.status(400).send({ message: "User not found" });
         }
 
-        const passwordMatched = await bcrypt.compare(password, existingUser.password);
+        const passwordMatched = await bcrypt.compare(
+            password,
+            existingUser.password
+        );
 
         if (!passwordMatched) {
             return res.status(400).send({ message: "Wrong password" });
@@ -110,10 +117,14 @@ exports.login = async(req, res) => {
         transporter.sendMail(mailOptions, (error, info) => {
             if (error) {
                 console.error("Error sending OTP email:", error);
-                return res.status(500).send({ message: "Error sending OTP email", error });
+                return res
+                    .status(500)
+                    .send({ message: "Error sending OTP email", error });
             } else {
                 console.log("Email sent: " + info.response);
-                return res.status(200).send({ message: "OTP sent successfully", email });
+                return res
+                    .status(200)
+                    .send({ message: "OTP sent successfully", email });
             }
         });
     } catch (error) {
@@ -193,11 +204,13 @@ exports.verifyOtp = async(req, res) => {
 
         // Generate JWT token with user details
         const jwtToken = jwt.sign({
-            userId: existingUser._id,
-            email: existingUser.email,
-            username: existingUser.username, // Include username in token payload if needed
-            role: existingUser.role, // Include username in token payload if needed
-        }, process.env.JWT_KEY, { expiresIn: "1d" }); // Token expires in 1 day
+                userId: existingUser._id,
+                email: existingUser.email,
+                username: existingUser.username, // Include username in token payload if needed
+                role: existingUser.role, // Include username in token payload if needed
+            },
+            process.env.JWT_KEY, { expiresIn: "1d" }
+        ); // Token expires in 1 day
 
         // Send success response with token and username
         return res.status(200).send({
@@ -214,13 +227,11 @@ exports.verifyOtp = async(req, res) => {
             httpOnly: true,
             sameSite: "lax",
         });
-
     } catch (error) {
         console.error("Error during OTP verification:", error);
         return res.status(500).send({ message: "Error verifying OTP", error });
     }
 };
-
 
 // user section on dashboard
 exports.accessuser = async(req, res) => {
@@ -700,19 +711,25 @@ exports.uploadCsv = [
     upload,
     async(req, res) => {
         try {
-            const authHeader = req.headers['authorization'];
+            const authHeader = req.headers["authorization"];
             if (!authHeader) {
-                return res.status(401).send({ message: "Unauthorized. Token required." });
+                return res
+                    .status(401)
+                    .send({ message: "Unauthorized. Token required." });
             }
 
-            const token = authHeader.split(' ')[1];
+            const token = authHeader.split(" ")[1];
             if (!token) {
-                return res.status(401).send({ message: "Unauthorized. Token missing." });
+                return res
+                    .status(401)
+                    .send({ message: "Unauthorized. Token missing." });
             }
 
             jwt.verify(token, process.env.JWT_KEY, async(err, decoded) => {
                 if (err) {
-                    return res.status(401).send({ message: "Unauthorized. Invalid token." });
+                    return res
+                        .status(401)
+                        .send({ message: "Unauthorized. Invalid token." });
                 }
 
                 const userId = decoded.userId;
@@ -721,7 +738,12 @@ exports.uploadCsv = [
             });
         } catch (error) {
             console.error("Error in token validation:", error);
-            res.status(500).send({ message: "Internal server error during token validation", error });
+            res
+                .status(500)
+                .send({
+                    message: "Internal server error during token validation",
+                    error,
+                });
         }
     },
 ];
@@ -735,12 +757,19 @@ async function handleFileUpload(req, res, userId) {
         }
 
         if (!campaignName || !campaignCode) {
-            return res.status(400).send({ message: "Missing campaign name or campaign code." });
+            return res
+                .status(400)
+                .send({ message: "Missing campaign name or campaign code." });
         }
 
         const file = req.file;
 
-        if (!file.filename || !file.originalname || !file.mimetype || !file.size || !file.path) {
+        if (!file.filename ||
+            !file.originalname ||
+            !file.mimetype ||
+            !file.size ||
+            !file.path
+        ) {
             return res.status(400).send({ message: "Incomplete file metadata." });
         }
 
@@ -749,7 +778,9 @@ async function handleFileUpload(req, res, userId) {
             fileContent = fs.readFileSync(file.path);
         } catch (readError) {
             console.error("Error reading file content:", readError);
-            return res.status(500).send({ message: "Error reading file content", error: readError });
+            return res
+                .status(500)
+                .send({ message: "Error reading file content", error: readError });
         }
 
         const newFile = new CompanySchema({
@@ -777,10 +808,14 @@ async function handleFileUpload(req, res, userId) {
         });
     } catch (error) {
         console.error("Error uploading or storing file:", error);
-        res.status(500).send({ message: "Internal server error during file upload or storage", error });
+        res
+            .status(500)
+            .send({
+                message: "Internal server error during file upload or storage",
+                error,
+            });
     }
 }
-
 
 exports.updateStatus = [
     async(req, res) => {
@@ -817,61 +852,66 @@ exports.updateStatus = [
     },
 ];
 
+exports.deleteFile = [
+    authenticateToken,
+    async(req, res) => {
+        try {
+            const { id } = req.params;
 
-exports.deleteFile = [authenticateToken, async(req, res) => {
-    try {
-        const { id } = req.params;
+            // Find the file by ID
+            const file = await CompanySchema.findById(id);
+            if (!file) {
+                return res.status(404).send({ message: "File not found." });
+            }
 
-        // Find the file by ID
-        const file = await CompanySchema.findById(id);
-        if (!file) {
-            return res.status(404).send({ message: "File not found." });
+            // Get the file path and ensure it's absolute
+            const filePath = path.resolve(file.path);
+
+            // Check if file exists before attempting to delete
+            fs.access(filePath, fs.constants.F_OK, async(err) => {
+                if (err) {
+                    console.error("File not found at path:", filePath);
+                    return res
+                        .status(404)
+                        .send({ message: "File not found on filesystem" });
+                }
+
+                try {
+                    // Delete the file document from the database
+                    await CompanySchema.findByIdAndDelete(id);
+
+                    // Delete the file from the server's filesystem
+                    fs.unlink(filePath, (unlinkErr) => {
+                        if (unlinkErr) {
+                            console.error("Error deleting file from filesystem:", unlinkErr);
+                            return res.status(500).send({
+                                message: "File deleted from DB, but error removing it from filesystem",
+                                error: unlinkErr,
+                            });
+                        }
+                        res.status(200).send({ message: "File deleted successfully" });
+                    });
+                } catch (deleteErr) {
+                    console.error("Error deleting file from database:", deleteErr);
+                    res
+                        .status(500)
+                        .send({ message: "Error deleting file from DB", error: deleteErr });
+                }
+            });
+        } catch (error) {
+            console.error("Error deleting file:", error);
+            res.status(500).send({ message: "Error deleting file", error });
         }
-
-        // Get the file path and ensure it's absolute
-        const filePath = path.resolve(file.path);
-
-        // Check if file exists before attempting to delete
-        fs.access(filePath, fs.constants.F_OK, async(err) => {
-            if (err) {
-                console.error("File not found at path:", filePath);
-                return res.status(404).send({ message: "File not found on filesystem" });
-            }
-
-            try {
-                // Delete the file document from the database
-                await CompanySchema.findByIdAndDelete(id);
-
-                // Delete the file from the server's filesystem
-                fs.unlink(filePath, (unlinkErr) => {
-                    if (unlinkErr) {
-                        console.error("Error deleting file from filesystem:", unlinkErr);
-                        return res.status(500).send({
-                            message: "File deleted from DB, but error removing it from filesystem",
-                            error: unlinkErr,
-                        });
-                    }
-                    res.status(200).send({ message: "File deleted successfully" });
-                });
-            } catch (deleteErr) {
-                console.error("Error deleting file from database:", deleteErr);
-                res.status(500).send({ message: "Error deleting file from DB", error: deleteErr });
-            }
-        });
-    } catch (error) {
-        console.error("Error deleting file:", error);
-        res.status(500).send({ message: "Error deleting file", error });
-    }
-}];
-
+    },
+];
 
 const authenticateToken1 = (req, res, next) => {
-    const authHeader = req.headers['authorization'];
+    const authHeader = req.headers["authorization"];
     if (!authHeader) {
         return res.status(401).send({ message: "Unauthorized. Token required." });
     }
 
-    const token = authHeader.split(' ')[1];
+    const token = authHeader.split(" ")[1];
     if (!token) {
         return res.status(401).send({ message: "Unauthorized. Token missing." });
     }
@@ -899,7 +939,9 @@ exports.getCsvByRAFiles = [
             const files = await CompanySchema.find({ userId });
 
             if (!files || files.length === 0) {
-                return res.status(404).send({ message: "No files found for this user." });
+                return res
+                    .status(404)
+                    .send({ message: "No files found for this user." });
             }
 
             res.status(200).send({
@@ -912,8 +954,6 @@ exports.getCsvByRAFiles = [
         }
     },
 ];
-
-
 
 exports.getCsvFiles = [
     verifyToken, // Add token verification middleware here
@@ -936,10 +976,9 @@ exports.getCsvFiles = [
     },
 ];
 
-
 exports.getExcelFiles = async(req, res) => {
     const { fileId } = req.params;
-    const filePath = path.join(__dirname, 'uploads', `${fileId}.xlsx`); // Adjust the path as necessary
+    const filePath = path.join(__dirname, "uploads", `${fileId}.xlsx`); // Adjust the path as necessary
 
     if (fs.existsSync(filePath)) {
         try {
@@ -955,18 +994,22 @@ exports.getExcelFiles = async(req, res) => {
                 const excelData = new CompanySchema({
                     fileName: fileId,
                     sheetName,
-                    data: sheetData
+                    data: sheetData,
                 });
                 await excelData.save();
             }
 
-            res.status(200).json({ success: true, message: 'Excel data saved to database' });
+            res
+                .status(200)
+                .json({ success: true, message: "Excel data saved to database" });
         } catch (error) {
-            console.error('Error processing the Excel file:', error);
-            res.status(500).json({ success: false, message: 'Error processing the Excel file' });
+            console.error("Error processing the Excel file:", error);
+            res
+                .status(500)
+                .json({ success: false, message: "Error processing the Excel file" });
         }
     } else {
-        res.status(404).json({ success: false, message: 'File not found' });
+        res.status(404).json({ success: false, message: "File not found" });
     }
 };
 // GET API to retrieve a specific CSV file by ID
@@ -985,14 +1028,20 @@ exports.getCsvFileById = [
             // Check if the content is stored in the database
             if (file.content && file.content.length > 0) {
                 res.setHeader("Content-Type", file.mimetype);
-                res.setHeader("Content-Disposition", `attachment; filename="${file.filename}"`);
+                res.setHeader(
+                    "Content-Disposition",
+                    `attachment; filename="${file.filename}"`
+                );
                 return res.send(file.content);
             }
 
             // Check if the file path is stored and the file exists on the filesystem
             if (file.path && fs.existsSync(file.path)) {
                 res.setHeader("Content-Type", file.mimetype);
-                res.setHeader("Content-Disposition", `attachment; filename="${file.filename}"`);
+                res.setHeader(
+                    "Content-Disposition",
+                    `attachment; filename="${file.filename}"`
+                );
                 return fs.createReadStream(file.path).pipe(res);
             }
 
@@ -1019,14 +1068,20 @@ exports.downloadCsvFileById = [
             // Check if the content is stored in the database
             if (file.content && file.content.length > 0) {
                 res.setHeader("Content-Type", "text/csv");
-                res.setHeader("Content-Disposition", `attachment; filename="${file.filename}"`);
+                res.setHeader(
+                    "Content-Disposition",
+                    `attachment; filename="${file.filename}"`
+                );
                 return res.send(file.content);
             }
 
             // Check if the file path is stored and the file exists on the filesystem
             if (file.path && fs.existsSync(file.path)) {
                 res.setHeader("Content-Type", "text/csv");
-                res.setHeader("Content-Disposition", `attachment; filename="${file.filename}"`);
+                res.setHeader(
+                    "Content-Disposition",
+                    `attachment; filename="${file.filename}"`
+                );
                 return fs.createReadStream(file.path).pipe(res);
             }
 
@@ -1041,74 +1096,80 @@ exports.downloadCsvFileById = [
 // File update route
 
 exports.updateCsvFileById = [
-    verifyToken,
+    verifyToken, // Token verification middleware
     async(req, res) => {
         try {
             const fileId = req.params.id;
-            const { originalname, mimetype, buffer } = req.file || {};
-            const { filePath } = req.body || {};
+            const { filename, mimetype, path } = req.body;
+            const fileData = req.file; // Assuming file is being uploaded
 
-            // Find the file by ID
+            // Find the existing file in the database
             const file = await CompanySchema.findById(fileId);
-            // console.log(filePath)
-            // console.log(file)
-            // console.log(fileId)
+
             if (!file) {
-                return res.status(404).json({ message: "File not found." });
+                return res.status(404).send({ message: "File not found." });
             }
 
-            // Update file metadata
-            if (originalname) file.originalname = originalname;
+            // Update the filename and mimetype if provided
+            if (filename) file.filename = filename;
             if (mimetype) file.mimetype = mimetype;
 
-            // Update file content if buffer is provided
-            if (buffer) {
-                file.content = buffer; // Update in-memory content
-
-                // Save to filesystem if a path is provided
-                if (filePath) {
-                    // Ensure directory exists
-                    const dir = path.dirname(filePath);
-                    if (!fs.existsSync(dir)) {
-                        fs.mkdirSync(dir, { recursive: true });
-                    }
-
-                    // Write buffer to the specified file path
-                    fs.writeFileSync(filePath, buffer);
-                    file.path = filePath; // Update the path in the database
-                }
+            // If a new file is uploaded, replace the existing content
+            if (fileData) {
+                // Replace the content in the database or replace the file on the filesystem
+                file.content = fileData.buffer; // Store the new file's content
+                file.path = null; // If you're storing file content in the database, reset path
             }
 
-            // Save the updated file metadata and content to the database
-            const updatedFile = await file.save();
+            // If a new file path is provided, update the path and clear content
+            if (path) {
+                if (!fs.existsSync(path)) {
+                    return res
+                        .status(400)
+                        .send({ message: "Provided path does not exist." });
+                }
+                file.path = path; // Store the file's path in the database
+                file.content = null; // Clear content if the file is stored on disk
+            }
 
-            res.status(200).json({ message: "File updated successfully.", file: updatedFile });
+            // Save the updated file details
+            await file.save();
+
+            return res
+                .status(200)
+                .send({ message: "File updated successfully.", file });
         } catch (error) {
             console.error("Error updating file:", error);
-            res.status(500).json({ message: "Error updating file", error: error.message });
+            return res.status(500).send({ message: "Error updating file", error });
         }
-    }
+    },
 ];
 
-// operation team upload file 
+// operation team upload file
 
 exports.uploadOperationCsvFile = [
     upload, // Expecting a single file with field name 'file'
     async(req, res) => {
         try {
-            const authHeader = req.headers['authorization'];
+            const authHeader = req.headers["authorization"];
             if (!authHeader) {
-                return res.status(401).send({ message: "Unauthorized. Token required." });
+                return res
+                    .status(401)
+                    .send({ message: "Unauthorized. Token required." });
             }
 
-            const token = authHeader.split(' ')[1];
+            const token = authHeader.split(" ")[1];
             if (!token) {
-                return res.status(401).send({ message: "Unauthorized. Token missing." });
+                return res
+                    .status(401)
+                    .send({ message: "Unauthorized. Token missing." });
             }
 
             jwt.verify(token, process.env.JWT_KEY, async(err, decoded) => {
                 if (err) {
-                    return res.status(401).send({ message: "Unauthorized. Invalid token." });
+                    return res
+                        .status(401)
+                        .send({ message: "Unauthorized. Invalid token." });
                 }
 
                 const userId = decoded.userId;
@@ -1116,7 +1177,12 @@ exports.uploadOperationCsvFile = [
             });
         } catch (error) {
             console.error("Error in token validation:", error);
-            res.status(500).send({ message: "Internal server error during token validation", error });
+            res
+                .status(500)
+                .send({
+                    message: "Internal server error during token validation",
+                    error,
+                });
         }
     },
 ];
@@ -1130,7 +1196,9 @@ async function handleFileUploadByOperation(req, res, userId) {
         }
 
         if (!campaignName || !campaignCode) {
-            return res.status(400).send({ message: "Missing campaign name or campaign code." });
+            return res
+                .status(400)
+                .send({ message: "Missing campaign name or campaign code." });
         }
 
         const file = req.file;
@@ -1141,7 +1209,9 @@ async function handleFileUploadByOperation(req, res, userId) {
             fileContent = fs.readFileSync(file.path);
         } catch (readError) {
             console.error("Error reading file content:", readError);
-            return res.status(500).send({ message: "Error reading file content", error: readError });
+            return res
+                .status(500)
+                .send({ message: "Error reading file content", error: readError });
         }
 
         // Create a new document in the database
@@ -1165,7 +1235,12 @@ async function handleFileUploadByOperation(req, res, userId) {
         });
     } catch (error) {
         console.error("Error uploading or storing file:", error);
-        res.status(500).send({ message: "Internal server error during file upload or storage", error });
+        res
+            .status(500)
+            .send({
+                message: "Internal server error during file upload or storage",
+                error,
+            });
     }
 }
 
@@ -1198,16 +1273,16 @@ exports.getCsvFilesByOperationAll = [
             const files = await OperationCsvFile.find(); // Fetch all files
 
             if (!files || files.length === 0) {
-                return res.status(404).send({ message: 'No files found.' });
+                return res.status(404).send({ message: "No files found." });
             }
 
             res.status(200).send({
-                message: 'Files retrieved successfully',
+                message: "Files retrieved successfully",
                 files: files, // Ensure 'files' is the key expected by the frontend
             });
         } catch (error) {
-            console.error('Error retrieving files:', error);
-            res.status(500).send({ message: 'Error retrieving files', error });
+            console.error("Error retrieving files:", error);
+            res.status(500).send({ message: "Error retrieving files", error });
         }
     },
 ];
@@ -1221,19 +1296,21 @@ exports.getCsvFileByIdOperation = [
             const file = await OperationCsvFile.findById(id); // Fetch the file by ID
 
             if (!file) {
-                return res.status(404).send({ message: 'File not found.' });
+                return res.status(404).send({ message: "File not found." });
             }
 
             // Assuming the file content is stored as binary data in 'file.content'
-            res.setHeader('Content-Disposition', `attachment; filename="${file.originalname}"`);
-            res.setHeader('Content-Type', file.mimetype); // Set MIME type if available
+            res.setHeader(
+                "Content-Disposition",
+                `attachment; filename="${file.originalname}"`
+            );
+            res.setHeader("Content-Type", file.mimetype); // Set MIME type if available
             res.send(file.content); // Send the file content directly
-
         } catch (error) {
-            console.error('Error retrieving file:', error);
-            res.status(500).send({ message: 'Error retrieving file', error });
+            console.error("Error retrieving file:", error);
+            res.status(500).send({ message: "Error retrieving file", error });
         }
-    }
+    },
 ];
 // create campaign
 
@@ -1260,14 +1337,15 @@ exports.createCampaign = [
     async(req, res) => {
         try {
             const processFiles = (files) => {
-                return files ? files.map(file => ({
-                    filename: file.filename,
-                    originalname: file.originalname,
-                    mimetype: file.mimetype,
-                    size: file.size,
-                    path: file.path,
-                    content: fs.readFileSync(file.path), // Read file content
-                })) : [];
+                return files ?
+                    files.map((file) => ({
+                        filename: file.filename,
+                        originalname: file.originalname,
+                        mimetype: file.mimetype,
+                        size: file.size,
+                        path: file.path,
+                        content: fs.readFileSync(file.path), // Read file content
+                    })) : [];
             };
 
             const campaign = new CampaignSchema({
@@ -1410,18 +1488,16 @@ exports.getCampaignById = async(req, res) => {
     }
 };
 
-
 const getMimeType = (extension) => {
     const mimeTypes = {
-        '.pdf': 'application/pdf',
-        '.csv': 'text/csv',
-        '.doc': 'application/msword',
-        '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        ".pdf": "application/pdf",
+        ".csv": "text/csv",
+        ".doc": "application/msword",
+        ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         // Add other MIME types as needed
     };
-    return mimeTypes[extension] || 'application/octet-stream';
+    return mimeTypes[extension] || "application/octet-stream";
 };
-
 
 exports.addTemplate = async(req, res) => {
     try {
@@ -1460,25 +1536,28 @@ exports.getTemplateById = async(req, res) => {
 // upload csv file in campaign
 // *************************************************************************************************
 
-
-// Invoice 
+// Invoice
 
 exports.createInvoice = async(req, res) => {
     try {
         const newInvoice = new Invoice(req.body);
         await newInvoice.save();
-        res.status(201).json({ message: 'Invoice created successfully', data: newInvoice });
+        res
+            .status(201)
+            .json({ message: "Invoice created successfully", data: newInvoice });
     } catch (error) {
-        res.status(500).json({ message: 'Error creating invoice', error });
+        res.status(500).json({ message: "Error creating invoice", error });
     }
-}
+};
 
 exports.getInvoices = async(req, res) => {
     try {
         const invoices = await Invoice.find(); // Fetch all invoices
-        res.status(200).json({ message: 'Invoices retrieved successfully', data: invoices });
+        res
+            .status(200)
+            .json({ message: "Invoices retrieved successfully", data: invoices });
     } catch (error) {
-        res.status(500).json({ message: 'Error retrieving invoices', error });
+        res.status(500).json({ message: "Error retrieving invoices", error });
     }
 };
 
@@ -1487,11 +1566,13 @@ exports.getInvoiceById = async(req, res) => {
     try {
         const invoice = await Invoice.findById(req.params.id); // Find invoice by ID
         if (!invoice) {
-            return res.status(404).json({ message: 'Invoice not found' });
+            return res.status(404).json({ message: "Invoice not found" });
         }
-        res.status(200).json({ message: 'Invoice retrieved successfully', data: invoice });
+        res
+            .status(200)
+            .json({ message: "Invoice retrieved successfully", data: invoice });
     } catch (error) {
-        res.status(500).json({ message: 'Error retrieving invoice', error });
+        res.status(500).json({ message: "Error retrieving invoice", error });
     }
 };
 exports.deleteInvoiceById = async(req, res) => {
@@ -1500,11 +1581,13 @@ exports.deleteInvoiceById = async(req, res) => {
         const deletedInvoice = await Invoice.findByIdAndDelete(invoiceId); // Delete the invoice by ID
 
         if (!deletedInvoice) {
-            return res.status(404).json({ message: 'Invoice not found' });
+            return res.status(404).json({ message: "Invoice not found" });
         }
 
-        res.status(200).json({ message: 'Invoice deleted successfully', id: invoiceId });
+        res
+            .status(200)
+            .json({ message: "Invoice deleted successfully", id: invoiceId });
     } catch (error) {
-        res.status(500).json({ message: 'Error deleting invoice', error });
+        res.status(500).json({ message: "Error deleting invoice", error });
     }
 };
