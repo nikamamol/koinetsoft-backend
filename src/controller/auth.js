@@ -20,6 +20,12 @@ const operationCsvFile = require("../model/OperationCsv");
 const OperationCsvFile = require("../model/OperationCsv");
 const InvoiceSchema = require("../model/InvoiceSchema");
 const Invoice = require("../model/InvoiceSchema");
+const RaMasterSChema = require("../model/RaMasterSChema");
+const QualityCheckedSChema = require("../model/QualityCheckedFIle");
+const QualityMasterCsvFile = require("../model/QualityMaster");
+const EMCheckedSChema = require("../model/EmailCheckedFiles");
+const UploadMasterEmCheckFile = require("../model/UploadMasterEmCheckFile");
+const OperationMasterFileSchema = require("../model/OperationMasterCsvFile");
 
 require("dotenv").config();
 
@@ -70,12 +76,10 @@ exports.login = async(req, res) => {
         if (token) {
             try {
                 const decodedToken = jwt.verify(token, process.env.JWT_KEY);
-                return res
-                    .status(200)
-                    .send({
-                        message: "User already authenticated",
-                        redirectTo: "/dashboard",
-                    });
+                return res.status(200).send({
+                    message: "User already authenticated",
+                    redirectTo: "/dashboard",
+                });
             } catch (err) {
                 // Token is invalid, proceed with login
                 console.error("Invalid token", err);
@@ -738,12 +742,10 @@ exports.uploadCsv = [
             });
         } catch (error) {
             console.error("Error in token validation:", error);
-            res
-                .status(500)
-                .send({
-                    message: "Internal server error during token validation",
-                    error,
-                });
+            res.status(500).send({
+                message: "Internal server error during token validation",
+                error,
+            });
         }
     },
 ];
@@ -808,12 +810,10 @@ async function handleFileUpload(req, res, userId) {
         });
     } catch (error) {
         console.error("Error uploading or storing file:", error);
-        res
-            .status(500)
-            .send({
-                message: "Internal server error during file upload or storage",
-                error,
-            });
+        res.status(500).send({
+            message: "Internal server error during file upload or storage",
+            error,
+        });
     }
 }
 
@@ -1177,12 +1177,10 @@ exports.uploadOperationCsvFile = [
             });
         } catch (error) {
             console.error("Error in token validation:", error);
-            res
-                .status(500)
-                .send({
-                    message: "Internal server error during token validation",
-                    error,
-                });
+            res.status(500).send({
+                message: "Internal server error during token validation",
+                error,
+            });
         }
     },
 ];
@@ -1235,12 +1233,10 @@ async function handleFileUploadByOperation(req, res, userId) {
         });
     } catch (error) {
         console.error("Error uploading or storing file:", error);
-        res
-            .status(500)
-            .send({
-                message: "Internal server error during file upload or storage",
-                error,
-            });
+        res.status(500).send({
+            message: "Internal server error during file upload or storage",
+            error,
+        });
     }
 }
 
@@ -1312,6 +1308,1066 @@ exports.getCsvFileByIdOperation = [
         }
     },
 ];
+
+// uplod RA Master File
+exports.uploadRaMasterCsvFile = [
+    upload, // Expecting a single file with field name 'file'
+    async(req, res) => {
+        try {
+            const authHeader = req.headers["authorization"];
+            if (!authHeader) {
+                return res
+                    .status(401)
+                    .send({ message: "Unauthorized. Token required." });
+            }
+
+            const token = authHeader.split(" ")[1];
+            if (!token) {
+                return res
+                    .status(401)
+                    .send({ message: "Unauthorized. Token missing." });
+            }
+
+            jwt.verify(token, process.env.JWT_KEY, async(err, decoded) => {
+                if (err) {
+                    return res
+                        .status(401)
+                        .send({ message: "Unauthorized. Invalid token." });
+                }
+
+                const userId = decoded.userId;
+                await handleFileUploadByRaMaster(req, res, userId);
+            });
+        } catch (error) {
+            console.error("Error in token validation:", error);
+            res.status(500).send({
+                message: "Internal server error during token validation",
+                error,
+            });
+        }
+    },
+];
+
+async function handleFileUploadByRaMaster(req, res, userId) {
+    try {
+        const { campaignName, campaignCode } = req.body;
+
+        if (!req.file) {
+            return res.status(400).send({ message: "No file uploaded." });
+        }
+
+        if (!campaignName || !campaignCode) {
+            return res
+                .status(400)
+                .send({ message: "Missing campaign name or campaign code." });
+        }
+
+        const file = req.file;
+
+        // Read file content
+        let fileContent;
+        try {
+            fileContent = fs.readFileSync(file.path);
+        } catch (readError) {
+            console.error("Error reading file content:", readError);
+            return res
+                .status(500)
+                .send({ message: "Error reading file content", error: readError });
+        }
+
+        // Create a new document in the database
+        const newFile = new RaMasterSChema({
+            filename: file.filename,
+            originalname: file.originalname,
+            mimetype: file.mimetype,
+            size: file.size,
+            path: file.path,
+            content: fileContent,
+            campaignName,
+            campaignCode,
+            userId,
+        });
+
+        await newFile.save();
+
+        res.status(200).send({
+            message: "File uploaded and stored successfully",
+            file: newFile,
+        });
+    } catch (error) {
+        console.error("Error uploading or storing file:", error);
+        res.status(500).send({
+            message: "Internal server error during file upload or storage",
+            error,
+        });
+    }
+}
+
+// getRAMaster csv File
+exports.getCsvFilesByRAMasterAll = [
+    authenticateToken1,
+    async(req, res) => {
+        try {
+            const files = await RaMasterSChema.find(); // Fetch all files
+
+            if (!files || files.length === 0) {
+                return res.status(404).send({ message: "No files found." });
+            }
+
+            res.status(200).send({
+                message: "Files retrieved successfully",
+                files: files, // Ensure 'files' is the key expected by the frontend
+            });
+        } catch (error) {
+            console.error("Error retrieving files:", error);
+            res.status(500).send({ message: "Error retrieving files", error });
+        }
+    },
+];
+
+exports.getRaMasterCsvFileById = [
+    authenticateToken1,
+    async(req, res) => {
+        try {
+            const { id } = req.params; // Get the ID from the request parameters
+            const file = await RaMasterSChema.findById(id); // Fetch the file by ID
+
+            if (!file) {
+                return res.status(404).send({ message: "File not found." });
+            }
+
+            res.status(200).send({
+                message: "File retrieved successfully",
+                file: file, // Ensure 'file' is the key expected by the frontend
+            });
+        } catch (error) {
+            console.error("Error retrieving file:", error);
+            res.status(500).send({ message: "Error retrieving file", error });
+        }
+    },
+];
+
+exports.deleteRaMasterCsvFileById = [
+    authenticateToken1, // Middleware for authentication
+    async(req, res) => {
+        try {
+            const { id } = req.params; // Get the ID from the request parameters
+
+            // Find and delete the file by ID
+            const file = await RaMasterSChema.findByIdAndDelete(id);
+
+            if (!file) {
+                return res.status(404).send({ message: "File not found." });
+            }
+
+            res.status(200).send({ message: "File deleted successfully." });
+        } catch (error) {
+            console.error("Error deleting file:", error);
+            res.status(500).send({ message: "Error deleting file", error });
+        }
+    },
+];
+
+//Quality Checked Files
+
+exports.uploadQualityCheckedCsvFile = [
+    upload, // Expecting a single file with field name 'file'
+    async(req, res) => {
+        try {
+            const authHeader = req.headers["authorization"];
+            if (!authHeader) {
+                return res
+                    .status(401)
+                    .send({ message: "Unauthorized. Token required." });
+            }
+
+            const token = authHeader.split(" ")[1];
+            if (!token) {
+                return res
+                    .status(401)
+                    .send({ message: "Unauthorized. Token missing." });
+            }
+
+            jwt.verify(token, process.env.JWT_KEY, async(err, decoded) => {
+                if (err) {
+                    return res
+                        .status(401)
+                        .send({ message: "Unauthorized. Invalid token." });
+                }
+
+                const userId = decoded.userId;
+                await handleFileUploadByQualityChecked(req, res, userId);
+            });
+        } catch (error) {
+            console.error("Error in token validation:", error);
+            res.status(500).send({
+                message: "Internal server error during token validation",
+                error,
+            });
+        }
+    },
+];
+
+async function handleFileUploadByQualityChecked(req, res, userId) {
+    try {
+        const { campaignName, campaignCode } = req.body;
+
+        if (!req.file) {
+            return res.status(400).send({ message: "No file uploaded." });
+        }
+
+        if (!campaignName || !campaignCode) {
+            return res
+                .status(400)
+                .send({ message: "Missing campaign name or campaign code." });
+        }
+
+        const file = req.file;
+
+        // Read file content
+        let fileContent;
+        try {
+            fileContent = fs.readFileSync(file.path);
+        } catch (readError) {
+            console.error("Error reading file content:", readError);
+            return res
+                .status(500)
+                .send({ message: "Error reading file content", error: readError });
+        }
+
+        // Create a new document in the database
+        const newFile = new QualityCheckedSChema({
+            filename: file.filename,
+            originalname: file.originalname,
+            mimetype: file.mimetype,
+            size: file.size,
+            path: file.path,
+            content: fileContent,
+            campaignName,
+            campaignCode,
+            userId,
+        });
+
+        await newFile.save();
+
+        res.status(200).send({
+            message: "File uploaded and stored successfully",
+            file: newFile,
+        });
+    } catch (error) {
+        console.error("Error uploading or storing file:", error);
+        res.status(500).send({
+            message: "Internal server error during file upload or storage",
+            error,
+        });
+    }
+}
+
+// getQualityChecked csv File
+exports.getCsvFilesByQualityCheckedAll = [
+    authenticateToken1,
+    async(req, res) => {
+        try {
+            const files = await QualityCheckedSChema.find(); // Fetch all files
+
+            res.status(200).send({
+                message: "Files retrieved successfully",
+                files: files, // Ensure 'files' is the key expected by the frontend
+            });
+        } catch (error) {
+            console.error("Error retrieving files:", error);
+            res.status(500).send({ message: "Error retrieving files", error });
+        }
+    },
+];
+
+//getquality check files by id
+// exports.getQualityCheckedCsvFileById = [
+//     authenticateToken1,
+//     async(req, res) => {
+//         try {
+//             const { id } = req.params; // Get the ID from the request parameters
+//             const file = await QualityCheckedSChema.findById(id); // Fetch the file by ID
+
+//             res.status(200).send({
+//                 message: "File retrieved successfully",
+//                 file: file, // Ensure 'file' is the key expected by the frontend
+//             });
+//         } catch (error) {
+//             console.error("Error retrieving file:", error);
+//             res.status(500).send({ message: "Error retrieving file", error });
+//         }
+//     },
+// ];
+
+
+exports.getQualityCheckedCsvFileById = [
+    verifyToken, // Add token verification middleware if needed
+    async(req, res) => {
+        try {
+            const fileId = req.params.id;
+            const file = await QualityCheckedSChema.findById(fileId);
+
+            if (!file) {
+                return res.status(404).send({ message: "File not found." });
+            }
+
+            // Check if the content is stored in the database
+            if (file.content && file.content.length > 0) {
+                res.setHeader("Content-Type", "text/csv");
+                res.setHeader(
+                    "Content-Disposition",
+                    `attachment; filename="${file.filename}"`
+                );
+                return res.send(file.content);
+            }
+
+            // Check if the file path is stored and the file exists on the filesystem
+            if (file.path && fs.existsSync(file.path)) {
+                res.setHeader("Content-Type", "text/csv");
+                res.setHeader(
+                    "Content-Disposition",
+                    `attachment; filename="${file.filename}"`
+                );
+                return fs.createReadStream(file.path).pipe(res);
+            }
+
+            // If neither the content nor the path is available
+            return res.status(404).send({ message: "File content not found." });
+        } catch (error) {
+            console.error("Error retrieving file:", error);
+            return res.status(500).send({ message: "Error retrieving file", error });
+        }
+    },
+];
+//deletequality file delete
+
+exports.deleteQualityCheckedCsvFileById = [
+    authenticateToken1, // Middleware for authentication
+    async(req, res) => {
+        try {
+            const { id } = req.params; // Get the ID from the request parameters
+
+            // Find and delete the file by ID
+            const file = await QualityCheckedSChema.findByIdAndDelete(id);
+
+            res.status(200).send({ message: "File deleted successfully." });
+        } catch (error) {
+            console.error("Error deleting file:", error);
+            res.status(500).send({ message: "Error deleting file", error });
+        }
+    },
+];
+
+// ***********************
+
+// getqualitymaster csv file by id
+exports.uploadQualityMasterCsvFile = [
+    upload, // Expecting a single file with field name 'file'
+    async(req, res) => {
+        try {
+            const authHeader = req.headers["authorization"];
+            if (!authHeader) {
+                return res
+                    .status(401)
+                    .send({ message: "Unauthorized. Token required." });
+            }
+
+            const token = authHeader.split(" ")[1];
+            if (!token) {
+                return res
+                    .status(401)
+                    .send({ message: "Unauthorized. Token missing." });
+            }
+
+            jwt.verify(token, process.env.JWT_KEY, async(err, decoded) => {
+                if (err) {
+                    return res
+                        .status(401)
+                        .send({ message: "Unauthorized. Invalid token." });
+                }
+
+                const userId = decoded.userId;
+                await handleFileUploadByQualityMaster(req, res, userId);
+            });
+        } catch (error) {
+            console.error("Error in token validation:", error);
+            res.status(500).send({
+                message: "Internal server error during token validation",
+                error,
+            });
+        }
+    },
+];
+
+async function handleFileUploadByQualityMaster(req, res, userId) {
+    try {
+        const { campaignName, campaignCode } = req.body;
+
+        if (!req.file) {
+            return res.status(400).send({ message: "No file uploaded." });
+        }
+
+        if (!campaignName || !campaignCode) {
+            return res
+                .status(400)
+                .send({ message: "Missing campaign name or campaign code." });
+        }
+
+        const file = req.file;
+
+        // Read file content
+        let fileContent;
+        try {
+            fileContent = fs.readFileSync(file.path);
+        } catch (readError) {
+            console.error("Error reading file content:", readError);
+            return res
+                .status(500)
+                .send({ message: "Error reading file content", error: readError });
+        }
+
+        // Create a new document in the database
+        const newFile = new QualityMasterCsvFile({
+            filename: file.filename,
+            originalname: file.originalname,
+            mimetype: file.mimetype,
+            size: file.size,
+            path: file.path,
+            content: fileContent,
+            campaignName,
+            campaignCode,
+            userId,
+        });
+
+        await newFile.save();
+
+        res.status(200).send({
+            message: "File uploaded and stored successfully",
+            file: newFile,
+        });
+    } catch (error) {
+        console.error("Error uploading or storing file:", error);
+        res.status(500).send({
+            message: "Internal server error during file upload or storage",
+            error,
+        });
+    }
+}
+
+//get quality master file data
+exports.getCsvFilesByQualityMasterAll = [
+    authenticateToken1,
+    async(req, res) => {
+        try {
+            const files = await QualityMasterCsvFile.find(); // Fetch all files
+
+            res.status(200).send({
+                message: "Files retrieved successfully",
+                files: files, // Ensure 'files' is the key expected by the frontend
+            });
+        } catch (error) {
+            console.error("Error retrieving files:", error);
+            res.status(500).send({ message: "Error retrieving files", error });
+        }
+    },
+];
+
+//get qualitymaster data by id
+
+
+exports.getQualityMasterCsvFileById = [
+    verifyToken, // Add token verification middleware if needed
+    async(req, res) => {
+        try {
+            const fileId = req.params.id;
+            const file = await QualityMasterCsvFile.findById(fileId);
+
+            if (!file) {
+                return res.status(404).send({ message: "File not found." });
+            }
+
+            // Check if the content is stored in the database
+            if (file.content && file.content.length > 0) {
+                res.setHeader("Content-Type", "text/csv");
+                res.setHeader(
+                    "Content-Disposition",
+                    `attachment; filename="${file.filename}"`
+                );
+                return res.send(file.content);
+            }
+
+            // Check if the file path is stored and the file exists on the filesystem
+            if (file.path && fs.existsSync(file.path)) {
+                res.setHeader("Content-Type", "text/csv");
+                res.setHeader(
+                    "Content-Disposition",
+                    `attachment; filename="${file.filename}"`
+                );
+                return fs.createReadStream(file.path).pipe(res);
+            }
+
+            // If neither the content nor the path is available
+            return res.status(404).send({ message: "File content not found." });
+        } catch (error) {
+            console.error("Error retrieving file:", error);
+            return res.status(500).send({ message: "Error retrieving file", error });
+        }
+    },
+];
+
+//delete qualitymaster data by id
+exports.deleteQualityMasterCsvFileById = [
+    authenticateToken1, // Middleware for authentication
+    async(req, res) => {
+        try {
+            const { id } = req.params; // Get the ID from the request parameters
+
+            // Find and delete the file by ID
+            const file = await QualityMasterCsvFile.findByIdAndDelete(id);
+
+            res.status(200).send({ message: "File deleted successfully." });
+        } catch (error) {
+            console.error("Error deleting file:", error);
+            res.status(500).send({ message: "Error deleting file", error });
+        }
+    },
+];
+
+//**********************************
+// Email Marketing
+exports.uploadEMCheckedCsvFile = [
+    upload, // Expecting a single file with field name 'file'
+    async(req, res) => {
+        try {
+            const authHeader = req.headers["authorization"];
+            if (!authHeader) {
+                return res
+                    .status(401)
+                    .send({ message: "Unauthorized. Token required." });
+            }
+
+            const token = authHeader.split(" ")[1];
+            if (!token) {
+                return res
+                    .status(401)
+                    .send({ message: "Unauthorized. Token missing." });
+            }
+
+            jwt.verify(token, process.env.JWT_KEY, async(err, decoded) => {
+                if (err) {
+                    return res
+                        .status(401)
+                        .send({ message: "Unauthorized. Invalid token." });
+                }
+
+                const userId = decoded.userId;
+                await handleFileUploadByEMChecked(req, res, userId);
+            });
+        } catch (error) {
+            console.error("Error in token validation:", error);
+            res.status(500).send({
+                message: "Internal server error during token validation",
+                error,
+            });
+        }
+    },
+];
+
+async function handleFileUploadByEMChecked(req, res, userId) {
+    try {
+        const { campaignName, campaignCode } = req.body;
+
+        if (!req.file) {
+            return res.status(400).send({ message: "No file uploaded." });
+        }
+
+        if (!campaignName || !campaignCode) {
+            return res
+                .status(400)
+                .send({ message: "Missing campaign name or campaign code." });
+        }
+
+        const file = req.file;
+
+        // Read file content
+        let fileContent;
+        try {
+            fileContent = fs.readFileSync(file.path);
+        } catch (readError) {
+            console.error("Error reading file content:", readError);
+            return res
+                .status(500)
+                .send({ message: "Error reading file content", error: readError });
+        }
+
+        // Create a new document in the database
+        const newFile = new EMCheckedSChema({
+            filename: file.filename,
+            originalname: file.originalname,
+            mimetype: file.mimetype,
+            size: file.size,
+            path: file.path,
+            content: fileContent,
+            campaignName,
+            campaignCode,
+            userId,
+        });
+
+        await newFile.save();
+
+        res.status(200).send({
+            message: "File uploaded and stored successfully",
+            file: newFile,
+        });
+    } catch (error) {
+        console.error("Error uploading or storing file:", error);
+        res.status(500).send({
+            message: "Internal server error during file upload or storage",
+            error,
+        });
+    }
+}
+//getemData
+exports.getCsvFilesByEMCheckedAll = [
+    authenticateToken1,
+    async(req, res) => {
+        try {
+            const files = await EMCheckedSChema.find(); // Fetch all files
+
+            res.status(200).send({
+                message: "Files retrieved successfully",
+                files: files, // Ensure 'files' is the key expected by the frontend
+            });
+        } catch (error) {
+            console.error("Error retrieving files:", error);
+            res.status(500).send({ message: "Error retrieving files", error });
+        }
+    },
+];
+
+//get em data for id
+// exports.getEMCheckedCsvFileById = [
+//     authenticateToken1,
+//     async(req, res) => {
+//         try {
+//             const { id } = req.params; // Get the ID from the request parameters
+//             const file = await EMCheckedSChema.findById(id); // Fetch the file by ID
+
+//             res.status(200).send({
+//                 message: "File retrieved successfully",
+//                 file: file, // Ensure 'file' is the key expected by the frontend
+//             });
+//         } catch (error) {
+//             console.error("Error retrieving file:", error);
+//             res.status(500).send({ message: "Error retrieving file", error });
+//         }
+//     },
+// ];
+
+exports.getEMCheckedCsvFileById = [
+    verifyToken, // Add token verification middleware if needed
+    async(req, res) => {
+        try {
+            const fileId = req.params.id;
+            const file = await EMCheckedSChema.findById(fileId);
+
+            if (!file) {
+                return res.status(404).send({ message: "File not found." });
+            }
+
+            // Check if the content is stored in the database
+            if (file.content && file.content.length > 0) {
+                res.setHeader("Content-Type", "text/csv");
+                res.setHeader(
+                    "Content-Disposition",
+                    `attachment; filename="${file.filename}"`
+                );
+                return res.send(file.content);
+            }
+
+            // Check if the file path is stored and the file exists on the filesystem
+            if (file.path && fs.existsSync(file.path)) {
+                res.setHeader("Content-Type", "text/csv");
+                res.setHeader(
+                    "Content-Disposition",
+                    `attachment; filename="${file.filename}"`
+                );
+                return fs.createReadStream(file.path).pipe(res);
+            }
+
+            // If neither the content nor the path is available
+            return res.status(404).send({ message: "File content not found." });
+        } catch (error) {
+            console.error("Error retrieving file:", error);
+            return res.status(500).send({ message: "Error retrieving file", error });
+        }
+    },
+];
+
+//Delete EM Data By Id
+exports.deleteEMCheckedCsvFileById = [
+    authenticateToken1, // Middleware for authentication
+    async(req, res) => {
+        try {
+            const { id } = req.params; // Get the ID from the request parameters
+
+            // Find and delete the file by ID
+            const file = await EMCheckedSChema.findByIdAndDelete(id);
+
+            res.status(200).send({ message: "File deleted successfully." });
+        } catch (error) {
+            console.error("Error deleting file:", error);
+            res.status(500).send({ message: "Error deleting file", error });
+        }
+    },
+];
+//*********************************
+//upload email master csv file
+exports.uploadEMMasterCsvFile = [
+    upload, // Expecting a single file with field name 'file'
+    async(req, res) => {
+        try {
+            const authHeader = req.headers["authorization"];
+            if (!authHeader) {
+                return res
+                    .status(401)
+                    .send({ message: "Unauthorized. Token required." });
+            }
+
+            const token = authHeader.split(" ")[1];
+            if (!token) {
+                return res
+                    .status(401)
+                    .send({ message: "Unauthorized. Token missing." });
+            }
+
+            jwt.verify(token, process.env.JWT_KEY, async(err, decoded) => {
+                if (err) {
+                    return res
+                        .status(401)
+                        .send({ message: "Unauthorized. Invalid token." });
+                }
+
+                const userId = decoded.userId;
+                await handleFileUploadByEMMaster(req, res, userId);
+            });
+        } catch (error) {
+            console.error("Error in token validation:", error);
+            res.status(500).send({
+                message: "Internal server error during token validation",
+                error,
+            });
+        }
+    },
+];
+
+async function handleFileUploadByEMMaster(req, res, userId) {
+    try {
+        const { campaignName, campaignCode } = req.body;
+
+        if (!req.file) {
+            return res.status(400).send({ message: "No file uploaded." });
+        }
+
+        if (!campaignName || !campaignCode) {
+            return res
+                .status(400)
+                .send({ message: "Missing campaign name or campaign code." });
+        }
+
+        const file = req.file;
+
+        // Read file content
+        let fileContent;
+        try {
+            fileContent = fs.readFileSync(file.path);
+        } catch (readError) {
+            console.error("Error reading file content:", readError);
+            return res
+                .status(500)
+                .send({ message: "Error reading file content", error: readError });
+        }
+
+        // Create a new document in the database
+        const newFile = new UploadMasterEmCheckFile({
+            filename: file.filename,
+            originalname: file.originalname,
+            mimetype: file.mimetype,
+            size: file.size,
+            path: file.path,
+            content: fileContent,
+            campaignName,
+            campaignCode,
+            userId,
+        });
+
+        await newFile.save();
+
+        res.status(200).send({
+            message: "File uploaded and stored successfully",
+            file: newFile,
+        });
+    } catch (error) {
+        console.error("Error uploading or storing file:", error);
+        res.status(500).send({
+            message: "Internal server error during file upload or storage",
+            error,
+        });
+    }
+}
+
+//get email master data
+exports.getCsvFilesByEMMasterAll = [
+    authenticateToken1,
+    async(req, res) => {
+        try {
+            const files = await UploadMasterEmCheckFile.find(); // Fetch all files
+
+            res.status(200).send({
+                message: "Files retrieved successfully",
+                files: files, // Ensure 'files' is the key expected by the frontend
+            });
+        } catch (error) {
+            console.error("Error retrieving files:", error);
+            res.status(500).send({ message: "Error retrieving files", error });
+        }
+    },
+];
+
+//get em data by id
+
+
+exports.getEMMasterCsvFileById = [
+    verifyToken, // Add token verification middleware if needed
+    async(req, res) => {
+        try {
+            const fileId = req.params.id;
+            const file = await UploadMasterEmCheckFile.findById(fileId);
+
+            if (!file) {
+                return res.status(404).send({ message: "File not found." });
+            }
+
+            // Check if the content is stored in the database
+            if (file.content && file.content.length > 0) {
+                res.setHeader("Content-Type", "text/csv");
+                res.setHeader(
+                    "Content-Disposition",
+                    `attachment; filename="${file.filename}"`
+                );
+                return res.send(file.content);
+            }
+
+            // Check if the file path is stored and the file exists on the filesystem
+            if (file.path && fs.existsSync(file.path)) {
+                res.setHeader("Content-Type", "text/csv");
+                res.setHeader(
+                    "Content-Disposition",
+                    `attachment; filename="${file.filename}"`
+                );
+                return fs.createReadStream(file.path).pipe(res);
+            }
+
+            // If neither the content nor the path is available
+            return res.status(404).send({ message: "File content not found." });
+        } catch (error) {
+            console.error("Error retrieving file:", error);
+            return res.status(500).send({ message: "Error retrieving file", error });
+        }
+    },
+];
+
+//delete EM Master file by id
+exports.deleteEMMasterCsvFileById = [
+    authenticateToken1, // Middleware for authentication
+    async(req, res) => {
+        try {
+            const { id } = req.params; // Get the ID from the request parameters
+
+            // Find and delete the file by ID
+            const file = await UploadMasterEmCheckFile.findByIdAndDelete(id);
+
+            res.status(200).send({ message: "File deleted successfully." });
+        } catch (error) {
+            console.error("Error deleting file:", error);
+            res.status(500).send({ message: "Error deleting file", error });
+        }
+    },
+];
+//***************************
+//operation Master file
+exports.operationMasterCsvFile = [
+    upload, // Expecting a single file with field name 'file'
+    async(req, res) => {
+        try {
+            const authHeader = req.headers["authorization"];
+            if (!authHeader) {
+                return res
+                    .status(401)
+                    .send({ message: "Unauthorized. Token required." });
+            }
+
+            const token = authHeader.split(" ")[1];
+            if (!token) {
+                return res
+                    .status(401)
+                    .send({ message: "Unauthorized. Token missing." });
+            }
+
+            jwt.verify(token, process.env.JWT_KEY, async(err, decoded) => {
+                if (err) {
+                    return res
+                        .status(401)
+                        .send({ message: "Unauthorized. Invalid token." });
+                }
+
+                const userId = decoded.userId;
+                await handleFileUploadByOperationMaster(req, res, userId);
+            });
+        } catch (error) {
+            console.error("Error in token validation:", error);
+            res.status(500).send({
+                message: "Internal server error during token validation",
+                error,
+            });
+        }
+    },
+];
+
+async function handleFileUploadByOperationMaster(req, res, userId) {
+    try {
+        const { campaignName, campaignCode } = req.body;
+
+        if (!req.file) {
+            return res.status(400).send({ message: "No file uploaded." });
+        }
+
+        if (!campaignName || !campaignCode) {
+            return res
+                .status(400)
+                .send({ message: "Missing campaign name or campaign code." });
+        }
+
+        const file = req.file;
+
+        // Read file content
+        let fileContent;
+        try {
+            fileContent = fs.readFileSync(file.path);
+        } catch (readError) {
+            console.error("Error reading file content:", readError);
+            return res
+                .status(500)
+                .send({ message: "Error reading file content", error: readError });
+        }
+
+        // Create a new document in the database
+        const newFile = new OperationMasterFileSchema({
+            filename: file.filename,
+            originalname: file.originalname,
+            mimetype: file.mimetype,
+            size: file.size,
+            path: file.path,
+            content: fileContent,
+            campaignName,
+            campaignCode,
+            userId,
+        });
+
+        await newFile.save();
+
+        res.status(200).send({
+            message: "File uploaded and stored successfully",
+            file: newFile,
+        });
+    } catch (error) {
+        console.error("Error uploading or storing file:", error);
+        res.status(500).send({
+            message: "Internal server error during file upload or storage",
+            error,
+        });
+    }
+}
+
+//operation master file data get
+exports.getCsvFilesByOpMasterAll = [
+    authenticateToken1,
+    async(req, res) => {
+        try {
+            const files = await OperationMasterFileSchema.find(); // Fetch all files
+
+            res.status(200).send({
+                message: "Files retrieved successfully",
+                files: files, // Ensure 'files' is the key expected by the frontend
+            });
+        } catch (error) {
+            console.error("Error retrieving files:", error);
+            res.status(500).send({ message: "Error retrieving files", error });
+        }
+    },
+];
+
+//operation master file data get by id
+
+exports.getOPMasterCsvFileById = [
+    verifyToken, // Add token verification middleware if needed
+    async(req, res) => {
+        try {
+            const fileId = req.params.id;
+            const file = await OperationMasterFileSchema.findById(fileId);
+
+            if (!file) {
+                return res.status(404).send({ message: "File not found." });
+            }
+
+            // Check if the content is stored in the database
+            if (file.content && file.content.length > 0) {
+                res.setHeader("Content-Type", "text/csv");
+                res.setHeader(
+                    "Content-Disposition",
+                    `attachment; filename="${file.filename}"`
+                );
+                return res.send(file.content);
+            }
+
+            // Check if the file path is stored and the file exists on the filesystem
+            if (file.path && fs.existsSync(file.path)) {
+                res.setHeader("Content-Type", "text/csv");
+                res.setHeader(
+                    "Content-Disposition",
+                    `attachment; filename="${file.filename}"`
+                );
+                return fs.createReadStream(file.path).pipe(res);
+            }
+
+            // If neither the content nor the path is available
+            return res.status(404).send({ message: "File content not found." });
+        } catch (error) {
+            console.error("Error retrieving file:", error);
+            return res.status(500).send({ message: "Error retrieving file", error });
+        }
+    },
+];
+
+
+//operation file data delete by id
+exports.deleteOPMasterCsvFileById = [
+    authenticateToken1, // Middleware for authentication
+    async(req, res) => {
+        try {
+            const { id } = req.params; // Get the ID from the request parameters
+
+            // Find and delete the file by ID
+            const file = await OperationMasterFileSchema.findByIdAndDelete(id);
+            res.status(200).send({ message: "File deleted successfully." });
+        } catch (error) {
+            console.error("Error deleting file:", error);
+            res.status(500).send({ message: "Error deleting file", error });
+        }
+    },
+];
+// *********************************************************************************************************
 // create campaign
 
 const campaignStorage = multer.diskStorage({

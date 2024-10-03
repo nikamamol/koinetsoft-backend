@@ -1,6 +1,5 @@
 const express = require("express");
 
-
 const {
     signup,
     login,
@@ -53,8 +52,33 @@ const {
     getInvoices,
     getInvoiceById,
     deleteInvoiceById,
+    uploadRaMasterCsvFile,
+    getCsvFilesByRAMasterAll,
+    getRaMasterCsvFileById,
+    deleteRaMasterCsvFileById,
+    uploadQualityCheckedCsvFile,
+    getCsvFilesByQualityCheckedAll,
+    getQualityCheckedCsvFileById,
+    deleteQualityCheckedCsvFileById,
+    uploadQualityMasterCsvFile,
+    getCsvFilesByQualityMasterAll,
+    getQualityMasterCsvFileById,
+    deleteQualityMasterCsvFileById,
+    uploadEMCheckedCsvFile,
+    getCsvFilesByEMCheckedAll,
+    getEMCheckedCsvFileById,
+    deleteEMCheckedCsvFileById,
+    uploadEMMasterCsvFile,
+    getCsvFilesByEMMasterAll,
+    getEMMasterCsvFileById,
+    deleteEMMasterCsvFileById,
+    operationMasterCsvFile,
+    getCsvFilesByOpMasterAll,
+    getOPMasterCsvFileById,
+    deleteOPMasterCsvFileById,
 } = require("../controller/auth");
 const authenticateToken = require("../middleware/authMeddile");
+const QualityMasterCsvFile = require("../model/QualityMaster");
 
 const UserAuthRouter = express.Router();
 
@@ -86,39 +110,96 @@ UserAuthRouter.delete("/deleteClient/:id", deleteClient);
 
 // create campaign
 UserAuthRouter.post("/createcampaign", createCampaign);
-UserAuthRouter.get('/getCampaignsData', getAllCampaigns);
-UserAuthRouter.get('/getCampaignsDataById/:id', getCampaignById);
-UserAuthRouter.put('/updateCampaignById/:id', updateCampaignById);
+UserAuthRouter.get("/getCampaignsData", getAllCampaigns);
+UserAuthRouter.get("/getCampaignsDataById/:id", getCampaignById);
+UserAuthRouter.put("/updateCampaignById/:id", updateCampaignById);
 
-// rpf 
+// rpf
 UserAuthRouter.post("/uploadcsv", uploadCsv);
 UserAuthRouter.get("/csvFileData", getCsvByRAFiles);
 UserAuthRouter.get("/csvFileAllData", getCsvFiles);
 UserAuthRouter.get("/csvFileData/:id", getCsvFileById);
 UserAuthRouter.get("/downloadCsvFileById/:id", downloadCsvFileById);
 UserAuthRouter.put("/updateStatus/:id", updateStatus);
-UserAuthRouter.delete('/csvFileData/:id', deleteFile);
-UserAuthRouter.get('/readexcel/:id', getExcelFiles);
-UserAuthRouter.put('/updateCsvFileById/:id', updateCsvFileById);
-UserAuthRouter.post('/operationCsvFile', uploadOperationCsvFile);
-UserAuthRouter.get('/getCsvDatabyOperation', getCsvFilesByOperation);
-UserAuthRouter.get('/getCsvDatabyOperationAll', getCsvFilesByOperationAll);
-UserAuthRouter.get('/getCsvFileByIdOperation/:id', getCsvFileByIdOperation);
+UserAuthRouter.delete("/csvFileData/:id", deleteFile);
+UserAuthRouter.get("/readexcel/:id", getExcelFiles);
+UserAuthRouter.put("/updateCsvFileById/:id", updateCsvFileById);
+// RA Master File
+UserAuthRouter.post("/uploadramastercsv", uploadRaMasterCsvFile);
+UserAuthRouter.get("/getramasterCsvFileData", getCsvFilesByRAMasterAll);
+UserAuthRouter.get("/getramasterCsvFileData/:id", getRaMasterCsvFileById);
+UserAuthRouter.delete(
+    "/deleteRaMasterCsvFileById/:id",
+    deleteRaMasterCsvFileById
+);
+// Quality Check
+UserAuthRouter.post(
+    "/uploadQualityCheckedCsvFile",
+    uploadQualityCheckedCsvFile
+);
+UserAuthRouter.get(
+    "/getCsvFilesByQualityCheckedAll",
+    getCsvFilesByQualityCheckedAll
+);
+UserAuthRouter.get(
+    "/getQualityCheckedCsvFileById/:id",
+    getQualityCheckedCsvFileById
+);
+UserAuthRouter.delete(
+    "/deleteQualityCheckedCsvFileById/:id",
+    deleteQualityCheckedCsvFileById
+);
+//Email Check
+UserAuthRouter.post("/uploadEMCheckedCsvFile", uploadEMCheckedCsvFile);
+UserAuthRouter.get("/getCsvFilesByEMCheckedAll", getCsvFilesByEMCheckedAll);
+UserAuthRouter.get("/getEMCheckedCsvFileById/:id", getEMCheckedCsvFileById);
+UserAuthRouter.delete(
+    "/deleteEMCheckedCsvFileById/:id",
+    deleteEMCheckedCsvFileById
+);
+// quality master
+UserAuthRouter.post("/uploadQualityMasterCsvFile", uploadQualityMasterCsvFile);
+UserAuthRouter.get("/qualityMasterCsvFile", getCsvFilesByQualityMasterAll);
+UserAuthRouter.get(
+    "/getQualityMasterCsvFileById/:id",
+    getQualityMasterCsvFileById
+);
+UserAuthRouter.delete(
+    "/deleteQualityMasterCsvFileById/:id",
+    deleteQualityMasterCsvFileById
+);
+//Email master
+UserAuthRouter.post("/uploadEMMasterCsvFile", uploadEMMasterCsvFile);
+UserAuthRouter.get("/getCsvFilesByEMMasterAll", getCsvFilesByEMMasterAll);
+UserAuthRouter.get("/getEMMasterCsvFileById/:id", getEMMasterCsvFileById);
+UserAuthRouter.delete(
+    "/deleteEMMasterCsvFileById/:id",
+    deleteEMMasterCsvFileById
+);
 
-
-// UserAuthRouter.post('/uploadCsvByQuality', uploadCsvByQuality);
-
+// Delivery
+UserAuthRouter.post("/operationCsvFile", uploadOperationCsvFile);
+UserAuthRouter.get("/getCsvDatabyOperation", getCsvFilesByOperation);
+UserAuthRouter.get("/getCsvDatabyOperationAll", getCsvFilesByOperationAll);
+UserAuthRouter.get("/getCsvFileByIdOperation/:id", getCsvFileByIdOperation);
+//Delivery master csv file
+UserAuthRouter.post("/operationMasterCsvFile", operationMasterCsvFile);
+UserAuthRouter.get("/getCsvFilesByOpMasterAll", getCsvFilesByOpMasterAll);
+UserAuthRouter.get("/getOPMasterCsvFileById/:id", getOPMasterCsvFileById);
+UserAuthRouter.delete(
+    "/deleteOPMasterCsvFileById/:id",
+    deleteOPMasterCsvFileById
+);
 
 // create template
 UserAuthRouter.post("/createTemplate", addTemplate);
 UserAuthRouter.get("/getTemplateData", getTemplates);
-UserAuthRouter.get('/templates/:id', getTemplateById);
+UserAuthRouter.get("/templates/:id", getTemplateById);
 
 // Invoice
 UserAuthRouter.post("/createInvoice", createInvoice);
 UserAuthRouter.get("/getInvoices", getInvoices);
 UserAuthRouter.get("/getInvoiceById/:id", getInvoiceById);
 UserAuthRouter.delete("/deleteInvoiceById/:id", deleteInvoiceById);
-
 
 module.exports = UserAuthRouter;
