@@ -26,6 +26,7 @@ const QualityMasterCsvFile = require("../model/QualityMaster");
 const EMCheckedSChema = require("../model/EmailCheckedFiles");
 const UploadMasterEmCheckFile = require("../model/UploadMasterEmCheckFile");
 const OperationMasterFileSchema = require("../model/OperationMasterCsvFile");
+const UnwantedLeads = require("../model/UnwantedLeads");
 
 require("dotenv").config();
 
@@ -1284,27 +1285,41 @@ exports.getCsvFilesByOperationAll = [
 ];
 
 exports.getCsvFileByIdOperation = [
-    verifyToken, // Ensure the user is authenticated
+    verifyToken, // Add token verification middleware if needed
     async(req, res) => {
         try {
-            const { id } = req.params; // Get the file ID from request parameters
-
-            const file = await OperationCsvFile.findById(id); // Fetch the file by ID
+            const fileId = req.params.id;
+            const file = await OperationCsvFile.findById(fileId);
 
             if (!file) {
                 return res.status(404).send({ message: "File not found." });
             }
 
-            // Assuming the file content is stored as binary data in 'file.content'
-            res.setHeader(
-                "Content-Disposition",
-                `attachment; filename="${file.originalname}"`
-            );
-            res.setHeader("Content-Type", file.mimetype); // Set MIME type if available
-            res.send(file.content); // Send the file content directly
+            // Check if the content is stored in the database
+            if (file.content && file.content.length > 0) {
+                res.setHeader("Content-Type", "text/csv");
+                res.setHeader(
+                    "Content-Disposition",
+                    `attachment; filename="${file.filename}"`
+                );
+                return res.send(file.content);
+            }
+
+            // Check if the file path is stored and the file exists on the filesystem
+            if (file.path && fs.existsSync(file.path)) {
+                res.setHeader("Content-Type", "text/csv");
+                res.setHeader(
+                    "Content-Disposition",
+                    `attachment; filename="${file.filename}"`
+                );
+                return fs.createReadStream(file.path).pipe(res);
+            }
+
+            // If neither the content nor the path is available
+            return res.status(404).send({ message: "File content not found." });
         } catch (error) {
             console.error("Error retrieving file:", error);
-            res.status(500).send({ message: "Error retrieving file", error });
+            return res.status(500).send({ message: "Error retrieving file", error });
         }
     },
 ];
@@ -1600,7 +1615,6 @@ exports.getCsvFilesByQualityCheckedAll = [
 //     },
 // ];
 
-
 exports.getQualityCheckedCsvFileById = [
     verifyToken, // Add token verification middleware if needed
     async(req, res) => {
@@ -1774,7 +1788,6 @@ exports.getCsvFilesByQualityMasterAll = [
 ];
 
 //get qualitymaster data by id
-
 
 exports.getQualityMasterCsvFileById = [
     verifyToken, // Add token verification middleware if needed
@@ -2137,7 +2150,6 @@ exports.getCsvFilesByEMMasterAll = [
 
 //get em data by id
 
-
 exports.getEMMasterCsvFileById = [
     verifyToken, // Add token verification middleware if needed
     async(req, res) => {
@@ -2350,7 +2362,6 @@ exports.getOPMasterCsvFileById = [
     },
 ];
 
-
 //operation file data delete by id
 exports.deleteOPMasterCsvFileById = [
     authenticateToken1, // Middleware for authentication
@@ -2360,6 +2371,177 @@ exports.deleteOPMasterCsvFileById = [
 
             // Find and delete the file by ID
             const file = await OperationMasterFileSchema.findByIdAndDelete(id);
+            res.status(200).send({ message: "File deleted successfully." });
+        } catch (error) {
+            console.error("Error deleting file:", error);
+            res.status(500).send({ message: "Error deleting file", error });
+        }
+    },
+];
+
+//unwanted Leads
+exports.unwantedLeadsCsvFile = [
+    upload, // Expecting a single file with field name 'file'
+    async(req, res) => {
+        try {
+            const authHeader = req.headers["authorization"];
+            if (!authHeader) {
+                return res
+                    .status(401)
+                    .send({ message: "Unauthorized. Token required." });
+            }
+
+            const token = authHeader.split(" ")[1];
+            if (!token) {
+                return res
+                    .status(401)
+                    .send({ message: "Unauthorized. Token missing." });
+            }
+
+            jwt.verify(token, process.env.JWT_KEY, async(err, decoded) => {
+                if (err) {
+                    return res
+                        .status(401)
+                        .send({ message: "Unauthorized. Invalid token." });
+                }
+
+                const userId = decoded.userId;
+                await handleFileUploadByUnwantedLeads(req, res, userId);
+            });
+        } catch (error) {
+            console.error("Error in token validation:", error);
+            res.status(500).send({
+                message: "Internal server error during token validation",
+                error,
+            });
+        }
+    },
+];
+
+async function handleFileUploadByUnwantedLeads(req, res, userId) {
+    try {
+        const { campaignName, campaignCode } = req.body;
+
+        if (!req.file) {
+            return res.status(400).send({ message: "No file uploaded." });
+        }
+
+        if (!campaignName || !campaignCode) {
+            return res
+                .status(400)
+                .send({ message: "Missing campaign name or campaign code." });
+        }
+
+        const file = req.file;
+
+        // Read file content
+        let fileContent;
+        try {
+            fileContent = fs.readFileSync(file.path);
+        } catch (readError) {
+            console.error("Error reading file content:", readError);
+            return res
+                .status(500)
+                .send({ message: "Error reading file content", error: readError });
+        }
+
+        // Create a new document in the database
+        const newFile = new UnwantedLeads({
+            filename: file.filename,
+            originalname: file.originalname,
+            mimetype: file.mimetype,
+            size: file.size,
+            path: file.path,
+            content: fileContent,
+            campaignName,
+            campaignCode,
+            userId,
+        });
+
+        await newFile.save();
+
+        res.status(200).send({
+            message: "File uploaded and stored successfully",
+            file: newFile,
+        });
+    } catch (error) {
+        console.error("Error uploading or storing file:", error);
+        res.status(500).send({
+            message: "Internal server error during file upload or storage",
+            error,
+        });
+    }
+}
+
+
+//get unwanted leads
+exports.getCsvFilesByUnwantedLeadsAll = [
+    authenticateToken1,
+    async(req, res) => {
+        try {
+            const files = await UnwantedLeads.find(); // Fetch all files
+
+            res.status(200).send({
+                message: "Files retrieved successfully",
+                files: files, // Ensure 'files' is the key expected by the frontend
+            });
+        } catch (error) {
+            console.error("Error retrieving files:", error);
+            res.status(500).send({ message: "Error retrieving files", error });
+        }
+    },
+];
+
+//get unwanted leads by id
+exports.getUnwantedCsvFileById = [
+    verifyToken, // Add token verification middleware if needed
+    async(req, res) => {
+        try {
+            const fileId = req.params.id;
+            const file = await UnwantedLeads.findById(fileId);
+
+            if (!file) {
+                return res.status(404).send({ message: "File not found." });
+            }
+
+            // Check if the content is stored in the database
+            if (file.content && file.content.length > 0) {
+                res.setHeader("Content-Type", "text/csv");
+                res.setHeader(
+                    "Content-Disposition",
+                    `attachment; filename="${file.filename}"`
+                );
+                return res.send(file.content);
+            }
+
+            // Check if the file path is stored and the file exists on the filesystem
+            if (file.path && fs.existsSync(file.path)) {
+                res.setHeader("Content-Type", "text/csv");
+                res.setHeader(
+                    "Content-Disposition",
+                    `attachment; filename="${file.filename}"`
+                );
+                return fs.createReadStream(file.path).pipe(res);
+            }
+
+            // If neither the content nor the path is available
+            return res.status(404).send({ message: "File content not found." });
+        } catch (error) {
+            console.error("Error retrieving file:", error);
+            return res.status(500).send({ message: "Error retrieving file", error });
+        }
+    },
+];
+
+//elete unwanted leads
+exports.deleteUnwantedCsvFileById = [
+    authenticateToken1, // Middleware for authentication
+    async(req, res) => {
+        try {
+            const { id } = req.params; // Get the ID from the request parameters
+
+            // Find and delete the file by ID
+            const file = await UnwantedLeads.findByIdAndDelete(id);
             res.status(200).send({ message: "File deleted successfully." });
         } catch (error) {
             console.error("Error deleting file:", error);

@@ -76,6 +76,10 @@ const {
     getCsvFilesByOpMasterAll,
     getOPMasterCsvFileById,
     deleteOPMasterCsvFileById,
+    unwantedLeadsCsvFile,
+    getCsvFilesByUnwantedLeadsAll,
+    getUnwantedCsvFileById,
+    deleteUnwantedCsvFileById,
 } = require("../controller/auth");
 const authenticateToken = require("../middleware/authMeddile");
 const QualityMasterCsvFile = require("../model/QualityMaster");
@@ -182,6 +186,11 @@ UserAuthRouter.post("/operationCsvFile", uploadOperationCsvFile);
 UserAuthRouter.get("/getCsvDatabyOperation", getCsvFilesByOperation);
 UserAuthRouter.get("/getCsvDatabyOperationAll", getCsvFilesByOperationAll);
 UserAuthRouter.get("/getCsvFileByIdOperation/:id", getCsvFileByIdOperation);
+//unwanted Leads
+UserAuthRouter.post("/unwantedLeadsCsvFile", unwantedLeadsCsvFile);
+UserAuthRouter.get("/getCsvFilesByUnwantedLeadsAll", getCsvFilesByUnwantedLeadsAll);
+UserAuthRouter.get("/getUnwantedCsvFileById/:id", getUnwantedCsvFileById);
+UserAuthRouter.delete("/deleteUnwantedCsvFileById/:id", deleteUnwantedCsvFileById);
 //Delivery master csv file
 UserAuthRouter.post("/operationMasterCsvFile", operationMasterCsvFile);
 UserAuthRouter.get("/getCsvFilesByOpMasterAll", getCsvFilesByOpMasterAll);
