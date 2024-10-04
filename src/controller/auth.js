@@ -1440,24 +1440,44 @@ exports.getCsvFilesByRAMasterAll = [
     },
 ];
 
+
+
 exports.getRaMasterCsvFileById = [
-    authenticateToken1,
+    verifyToken, // Add token verification middleware if needed
     async(req, res) => {
         try {
-            const { id } = req.params; // Get the ID from the request parameters
-            const file = await RaMasterSChema.findById(id); // Fetch the file by ID
+            const fileId = req.params.id;
+            const file = await RaMasterSChema.findById(fileId);
 
             if (!file) {
                 return res.status(404).send({ message: "File not found." });
             }
 
-            res.status(200).send({
-                message: "File retrieved successfully",
-                file: file, // Ensure 'file' is the key expected by the frontend
-            });
+            // Check if the content is stored in the database
+            if (file.content && file.content.length > 0) {
+                res.setHeader("Content-Type", "text/csv");
+                res.setHeader(
+                    "Content-Disposition",
+                    `attachment; filename="${file.filename}"`
+                );
+                return res.send(file.content);
+            }
+
+            // Check if the file path is stored and the file exists on the filesystem
+            if (file.path && fs.existsSync(file.path)) {
+                res.setHeader("Content-Type", "text/csv");
+                res.setHeader(
+                    "Content-Disposition",
+                    `attachment; filename="${file.filename}"`
+                );
+                return fs.createReadStream(file.path).pipe(res);
+            }
+
+            // If neither the content nor the path is available
+            return res.status(404).send({ message: "File content not found." });
         } catch (error) {
             console.error("Error retrieving file:", error);
-            res.status(500).send({ message: "Error retrieving file", error });
+            return res.status(500).send({ message: "Error retrieving file", error });
         }
     },
 ];
