@@ -2725,6 +2725,30 @@ exports.getCampaignById = async(req, res) => {
         res.status(500).json({ message: "Error fetching campaign details", error });
     }
 };
+exports.updateCampaignStatus = async(req, res) => {
+    try {
+        const { id } = req.params; // Extract the campaign ID from the request parameters
+        const { status } = req.body; // Extract the new status from the request body
+
+        // Find the campaign by ID and update its status
+        const updatedCampaign = await CampaignSchema.findByIdAndUpdate(
+            id, { campaignStatus: status }, // Update the status field
+            { new: true, runValidators: true } // Return the updated document and run validators
+        );
+
+        if (!updatedCampaign) {
+            // If no campaign is found, respond with a 404 status and an error message
+            return res.status(404).json({ message: "Campaign not found" });
+        }
+
+        // Respond with the updated campaign details
+        res.status(200).json(updatedCampaign);
+    } catch (error) {
+        console.error("Error updating campaign status:", error);
+        res.status(500).json({ message: "Error updating campaign status", error });
+    }
+};
+
 
 const getMimeType = (extension) => {
     const mimeTypes = {

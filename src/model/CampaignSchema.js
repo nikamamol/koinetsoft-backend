@@ -82,15 +82,16 @@ const campaignSchema = new mongoose.Schema({
         type: String,
         enum: [
             "Active",
-            "Paused",
+            // "Paused",
             "Completed",
-            "Cancelled",
+            // "Cancelled",
+            "New",
             "Expired",
-            "Ongoing",
-            "Closed",
-            "Upcoming",
+            // "Ongoing",
+            // "Closed",
+            // "Upcoming",
         ],
-        default: "Upcoming",
+        default: "New",
     },
 });
 

@@ -80,6 +80,7 @@ const {
     getCsvFilesByUnwantedLeadsAll,
     getUnwantedCsvFileById,
     deleteUnwantedCsvFileById,
+    updateCampaignStatus,
 } = require("../controller/auth");
 const authenticateToken = require("../middleware/authMeddile");
 const QualityMasterCsvFile = require("../model/QualityMaster");
@@ -117,6 +118,7 @@ UserAuthRouter.post("/createcampaign", createCampaign);
 UserAuthRouter.get("/getCampaignsData", getAllCampaigns);
 UserAuthRouter.get("/getCampaignsDataById/:id", getCampaignById);
 UserAuthRouter.put("/updateCampaignById/:id", updateCampaignById);
+UserAuthRouter.put('/campaigns/:id', updateCampaignStatus);
 
 // rpf
 UserAuthRouter.post("/uploadcsv", uploadCsv);
