@@ -30,7 +30,7 @@ const UserSchema = new mongoose.Schema({
     },
     role: {
         type: String,
-        enum: ['admin', 'user', 'supervisor', 'oxmanager', 'agent', 'client', 'quality', 'email_marketing', 'delivery', 'guest'], // Expanded roles
+        enum: ['admin', 'user', 'supervisor', 'oxmanager', "reasercher", 'reasercher', 'agent', 'client', 'quality', 'email_marketing', 'delivery', 'guest'], // Expanded roles
         default: 'user',
     },
 }, { timestamps: true });
