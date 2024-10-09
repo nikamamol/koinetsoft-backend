@@ -66,6 +66,15 @@ exports.signup = async(req, res) => {
         return res.status(500).send({ message: "Error signing up!", error });
     }
 };
+exports.getAllRegisterUsers = async(req, res) => {
+    try {
+        const users = await User.find(); // Retrieve all users from the database
+        return res.status(200).send({ users });
+    } catch (error) {
+        console.error("Error retrieving users:", error);
+        return res.status(500).send({ message: "Error retrieving users!", error });
+    }
+};
 
 exports.login = async(req, res) => {
     const { email, password } = req.body;
@@ -82,7 +91,6 @@ exports.login = async(req, res) => {
                     redirectTo: "/dashboard",
                 });
             } catch (err) {
-                // Token is invalid, proceed with login
                 console.error("Invalid token", err);
             }
         }
@@ -94,18 +102,19 @@ exports.login = async(req, res) => {
             return res.status(400).send({ message: "User not found" });
         }
 
-        const passwordMatched = await bcrypt.compare(
-            password,
-            existingUser.password
-        );
+        const passwordMatched = await bcrypt.compare(password, existingUser.password);
 
         if (!passwordMatched) {
             return res.status(400).send({ message: "Wrong password" });
         }
 
-        // Generate OTP
-        const otp = crypto.randomInt(100000, 999999).toString(); // Generate a 6-digit OTP
-        const expiresIn = new Date(Date.now() + 10 * 60 * 1000); // OTP expires in 10 minutes
+        // Log the login time
+        existingUser.loginTimes.push({ timestamp: new Date() });
+        await existingUser.save();
+
+        // Generate OTP or JWT as needed
+        const otp = crypto.randomInt(100000, 999999).toString();
+        const expiresIn = new Date(Date.now() + 10 * 60 * 1000);
 
         existingUser.otp = otp;
         existingUser.otpExpires = expiresIn;
@@ -114,7 +123,7 @@ exports.login = async(req, res) => {
         // Send OTP email
         const mailOptions = {
             from: process.env.EMAIL_USER,
-            to: email, // Use the user's email
+            to: email,
             subject: "Your OTP Code",
             text: `Your OTP code is ${otp}`,
         };
@@ -134,6 +143,103 @@ exports.login = async(req, res) => {
         });
     } catch (error) {
         return res.status(500).send({ message: "Error logging in!", error });
+    }
+};
+
+exports.getDailyLogins = async(req, res) => {
+    try {
+        // Get the current date and start of the day (00:00:00)
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        // Find users who have login times today
+        const users = await User.find({
+            "loginTimes.timestamp": { $gte: today } // Filter for logins from today
+        }, { username: 1, "loginTimes.timestamp": 1 }); // Fetch only username and login times
+
+        res.status(200).send({
+            message: "Daily login users fetched successfully",
+            users,
+        });
+    } catch (error) {
+        console.error("Error fetching daily logins", error);
+        res.status(500).send({
+            message: "Error fetching daily logins",
+            error,
+        });
+    }
+};
+
+exports.getDailyLogouts = async(req, res) => {
+    try {
+        // Get the current date and start of the day (00:00:00)
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        // Find users who have logout times today
+        const users = await User.find({
+            "logoutTimes.timestamp": { $gte: today } // Filter for logouts from today
+        }, { username: 1, "logoutTimes.timestamp": 1 }); // Fetch only username and logout times
+
+        res.status(200).send({
+            message: "Daily logout users fetched successfully",
+            users,
+        });
+    } catch (error) {
+        console.error("Error fetching daily logouts", error);
+        res.status(500).send({
+            message: "Error fetching daily logouts",
+            error,
+        });
+    }
+};
+
+// *********
+
+exports.getUserDetails = async(req, res) => {
+    const { email, password } = req.body;
+
+    try {
+        // Check if the user is already authenticated by verifying the token
+        const token = req.headers.authorization;
+
+        if (token) {
+            try {
+                const decodedToken = jwt.verify(token, process.env.JWT_KEY);
+                // Optionally fetch the user details from the database using the decoded token if needed
+                const existingUser = await User.findById(decodedToken.userId);
+                return res.status(200).send({
+                    message: "User already authenticated",
+                    user: existingUser, // Send existing user details
+                    redirectTo: "/dashboard",
+                });
+            } catch (err) {
+                // Token is invalid, proceed with login
+                console.error("Invalid token", err);
+            }
+        }
+
+        // Continue with login process
+        const existingUser = await User.findOne({ email });
+
+        if (!existingUser) {
+            return res.status(400).send({ message: "User not found" });
+        }
+
+        // Verify password
+        const isPasswordValid = await bcrypt.compare(password, existingUser.password);
+        if (!isPasswordValid) {
+            return res.status(401).send({ message: "Invalid password" });
+        }
+
+        // Send existing user details
+        return res.status(200).send({
+            message: "User details retrieved successfully",
+            user: existingUser, // Send user details back
+        });
+    } catch (error) {
+        console.error("Error fetching user details:", error);
+        return res.status(500).send({ message: "Internal server error" });
     }
 };
 

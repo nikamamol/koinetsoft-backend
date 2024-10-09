@@ -81,9 +81,11 @@ const {
     getUnwantedCsvFileById,
     deleteUnwantedCsvFileById,
     updateCampaignStatus,
+    getAllRegisterUsers,
+    getDailyLogins,
+    getDailyLogouts,
 } = require("../controller/auth");
-const authenticateToken = require("../middleware/authMeddile");
-const QualityMasterCsvFile = require("../model/QualityMaster");
+
 
 const UserAuthRouter = express.Router();
 
@@ -92,6 +94,10 @@ UserAuthRouter.post("/login", login);
 UserAuthRouter.post("/logout", logout);
 UserAuthRouter.post("/send-otp", sendOtp);
 UserAuthRouter.post("/verify-otp", verifyOtp);
+UserAuthRouter.get("/userdetails", getUserDetails);
+UserAuthRouter.post("/getDailyLogouts", getDailyLogouts);
+UserAuthRouter.get("/getallregisterusers", getAllRegisterUsers);
+UserAuthRouter.get("/getdailylogins", getDailyLogins);
 
 // user
 UserAuthRouter.post("/addnewuser", accessuser);
