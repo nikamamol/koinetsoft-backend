@@ -236,11 +236,14 @@ exports.getUserDetails = async(req, res) => {
     try {
         // Check if the user is already authenticated by verifying the token
         const token = req.headers.authorization;
+        console.log("Authorization Token:", token);
 
         if (token) {
             try {
                 const decodedToken = jwt.verify(token, process.env.JWT_KEY);
-                // Optionally fetch the user details from the database using the decoded token if needed
+                console.log("Decoded token:", decodedToken);
+
+                // Optionally fetch the user details from the database using the decoded token
                 const existingUser = await User.findById(decodedToken.userId);
                 return res.status(200).send({
                     message: "User already authenticated",
@@ -255,7 +258,6 @@ exports.getUserDetails = async(req, res) => {
 
         // Continue with login process
         const existingUser = await User.findOne({ email });
-
         if (!existingUser) {
             return res.status(400).send({ message: "User not found" });
         }
