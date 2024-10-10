@@ -84,6 +84,7 @@ const {
     getAllRegisterUsers,
     getDailyLogins,
     getDailyLogouts,
+    saveComment,
 } = require("../controller/auth");
 
 
@@ -105,6 +106,7 @@ UserAuthRouter.get("/getallusers", getAllUsers);
 UserAuthRouter.get("/viewuserbyid/:id", viewUserById);
 UserAuthRouter.put("/updateuser/:id", updateUser);
 UserAuthRouter.delete("/deleteuser/:id", deleteUserById);
+UserAuthRouter.post("/saveComment", saveComment);
 // add agency
 UserAuthRouter.post("/invitagency", inviteagency);
 UserAuthRouter.get("/myagencies", myAgencyData);

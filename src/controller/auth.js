@@ -1,7 +1,7 @@
 const User = require("../model/User");
 const uplaodCSV = require("../model/CsvData");
 const bcrypt = require("bcrypt");
-const jwt = require("jsonwebtoken");
+const jwt = require('jsonwebtoken');
 const crypto = require("crypto");
 const nodemailer = require("nodemailer");
 const AccessUser = require("../model/AccessUser");
@@ -112,9 +112,9 @@ exports.login = async(req, res) => {
         existingUser.loginTimes.push({ timestamp: new Date() });
         await existingUser.save();
 
-        // Generate OTP or JWT as needed
+        // Generate OTP as needed
         const otp = crypto.randomInt(100000, 999999).toString();
-        const expiresIn = new Date(Date.now() + 10 * 60 * 1000);
+        const expiresIn = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes expiry
 
         existingUser.otp = otp;
         existingUser.otpExpires = expiresIn;
@@ -131,14 +131,10 @@ exports.login = async(req, res) => {
         transporter.sendMail(mailOptions, (error, info) => {
             if (error) {
                 console.error("Error sending OTP email:", error);
-                return res
-                    .status(500)
-                    .send({ message: "Error sending OTP email", error });
+                return res.status(500).send({ message: "Error sending OTP email", error });
             } else {
                 console.log("Email sent: " + info.response);
-                return res
-                    .status(200)
-                    .send({ message: "OTP sent successfully", email });
+                return res.status(200).send({ message: "OTP sent successfully", email });
             }
         });
     } catch (error) {
@@ -146,29 +142,67 @@ exports.login = async(req, res) => {
     }
 };
 
+// Function to get daily logins
 exports.getDailyLogins = async(req, res) => {
     try {
-        // Get the current date and start of the day (00:00:00)
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
+        // Find all users and their login and logout times
+        const users = await User.find({}, { username: 1, loginTimes: 1, logoutTimes: 1 }); // Fetch only username, login times, and logout times
 
-        // Find users who have login times today
-        const users = await User.find({
-            "loginTimes.timestamp": { $gte: today } // Filter for logins from today
-        }, { username: 1, "loginTimes.timestamp": 1 }); // Fetch only username and login times
+        // Map the users to format them for the response
+        const formattedUsers = users.map(user => ({
+            username: user.username,
+            loginTimes: user.loginTimes.map(time => ({
+                timestamp: time.timestamp,
+                date: time.timestamp.toLocaleDateString(),
+                time: time.timestamp.toLocaleTimeString(),
+            })),
+            logoutTimes: user.logoutTimes.map(time => ({
+                timestamp: time.timestamp,
+                date: time.timestamp.toLocaleDateString(),
+                time: time.timestamp.toLocaleTimeString(),
+            })),
+        }));
 
         res.status(200).send({
-            message: "Daily login users fetched successfully",
-            users,
+            message: "All login users fetched successfully",
+            users: formattedUsers,
         });
     } catch (error) {
-        console.error("Error fetching daily logins", error);
+        console.error("Error fetching all logins", error);
         res.status(500).send({
-            message: "Error fetching daily logins",
+            message: "Error fetching all logins",
             error,
         });
     }
 };
+
+exports.saveComment = async(req, res) => {
+    try {
+        const { userId, comment } = req.body;
+
+        // Assuming you have a User model and you're updating the comments field
+        const user = await User.findOne({ username: userId });
+        if (!user) {
+            return res.status(404).send({ message: "User not found" });
+        }
+
+        // Update the comments (you can modify the logic here as needed)
+        user.comments = comment; // You may want to store comments in a different structure
+        await user.save();
+
+        res.status(200).send({
+            message: "Comment saved successfully",
+        });
+    } catch (error) {
+        console.error("Error saving comment", error);
+        res.status(500).send({
+            message: "Error saving comment",
+            error,
+        });
+    }
+};
+
+
 
 exports.getDailyLogouts = async(req, res) => {
     try {
@@ -243,14 +277,36 @@ exports.getUserDetails = async(req, res) => {
     }
 };
 
+
 exports.logout = async(req, res) => {
+    const { userId } = req.body; // Extract userId from request body
+
+    // Check if userId is provided
+    if (!userId) {
+        return res.status(400).send({ message: "User ID not provided" });
+    }
+
     try {
-        res.clearCookie("token");
-        return res.status(200).send({ message: "logged out successfully!" });
+        // Find the user by ID
+        const existingUser = await User.findById(userId);
+
+        if (!existingUser) {
+            return res.status(404).send({ message: "User not found" });
+        }
+
+        // Record logout time
+        existingUser.logoutTimes.push({ timestamp: new Date() });
+        await existingUser.save();
+
+        return res.status(200).send({ message: "User logged out successfully" });
     } catch (error) {
-        return res.status(500).send({ message: "Error logging out!", error });
+        console.error("Error during logout:", error);
+        return res.status(500).send({ message: "Error logging out", error });
     }
 };
+
+
+
 
 exports.sendOtp = async(req, res) => {
     const { email } = req.body;

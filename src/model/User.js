@@ -40,6 +40,8 @@ const UserSchema = new mongoose.Schema({
             default: Date.now, // Default login time when the user logs in
         },
     }, ],
+    logoutTimes: [{ timestamp: { type: Date, default: Date.now } }],
+    comments: { type: String, default: '' }
 }, { timestamps: true });
 
 const User = mongoose.model("User", UserSchema);
