@@ -274,7 +274,7 @@ exports.getUserDetails = async(req, res) => {
             user: existingUser, // Send user details back
         });
     } catch (error) {
-        console.error("Error fetching user details:", error);
+        console.error("Errosr fetching user details:", error);
         return res.status(500).send({ message: "Internal server error" });
     }
 };
