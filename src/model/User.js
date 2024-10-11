@@ -30,7 +30,7 @@ const UserSchema = new mongoose.Schema({
     },
     role: {
         type: String,
-        enum: ['admin', 'user', 'supervisor', 'oxmanager', 'reasercher', 'agent', 'client', 'quality', 'email_marketing', 'delivery', 'guest'],
+        enum: ['admin', 'user', 'developer', 'supervisor', 'oxmanager', 'reasercher', , 'hr', 'agent', 'client', 'quality', 'email_marketing', 'delivery', 'guest'],
         default: 'user',
     },
     // Add login timestamps
