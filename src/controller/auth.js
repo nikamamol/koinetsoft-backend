@@ -213,12 +213,7 @@ exports.saveComment = async(req, res) => {
     }
 };
 
-exports.getTimer = (req, res) => {
-    const currentTime = Date.now(); // Get the current timestamp
-    const elapsedTime = Math.floor((currentTime - startTime) / 1000); // Calculate elapsed time in seconds
 
-    res.json({ time: elapsedTime });
-}
 
 exports.getDailyLogouts = async(req, res) => {
     try {
