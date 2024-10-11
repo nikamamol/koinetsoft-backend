@@ -85,6 +85,7 @@ const {
     getDailyLogins,
     getDailyLogouts,
     saveComment,
+    getTimer,
 } = require("../controller/auth");
 
 
@@ -113,6 +114,8 @@ UserAuthRouter.get("/myagencies", myAgencyData);
 UserAuthRouter.get("/viewAgencyDetails/:id", viewAgencyById);
 UserAuthRouter.put("/updateAgency/:id", updateAgency);
 UserAuthRouter.delete("/deletevendor/:id", deleteAgencyById);
+// counter
+UserAuthRouter.get("/getallcounter", getTimer);
 
 // billing
 UserAuthRouter.post("/addnewClient", addClient);
