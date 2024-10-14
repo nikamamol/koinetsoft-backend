@@ -178,27 +178,16 @@ exports.getDailyLogins = async(req, res) => {
 
 exports.saveComment = async(req, res) => {
     try {
-        const { userId, comment, date } = req.body;
+        const { userId, comment } = req.body;
 
-        // Find the user by ID or username
+        // Assuming you have a User model and you're updating the comments field
         const user = await User.findOne({ username: userId });
         if (!user) {
             return res.status(404).send({ message: "User not found" });
         }
 
-        // Assuming user.loginTimes is an array, find the login entry for the specific date
-        const loginEntry = user.loginTimes.find(
-            (loginTime) => new Date(loginTime.timestamp).toLocaleDateString() === new Date(date).toLocaleDateString()
-        );
-
-        if (!loginEntry) {
-            return res.status(404).send({ message: "Login entry not found for this date" });
-        }
-
-        // Add or update the comment for this specific login entry
-        loginEntry.comment = comment;
-
-        // Save the updated user data
+        // Update the comments (you can modify the logic here as needed)
+        user.comments = comment; // You may want to store comments in a different structure
         await user.save();
 
         res.status(200).send({
@@ -247,7 +236,7 @@ exports.getUserDetails = async(req, res) => {
     try {
         // Check if the user is already authenticated by verifying the token
         const token = req.headers.authorization;
-        console.log("Authorization Token:", token);
+        console.log("authorization Token:", token);
 
         if (token) {
             try {
