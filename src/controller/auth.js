@@ -236,12 +236,12 @@ exports.getUserDetails = async(req, res) => {
     try {
         // Check if the user is already authenticated by verifying the token
         const token = req.headers.authorization;
-        console.log("authorization Token:", token);
+        // console.log("authorization Token:", token);
 
         if (token) {
             try {
                 const decodedToken = jwt.verify(token, process.env.JWT_KEY);
-                console.log("Decoded token:", decodedToken);
+                // console.log("Decoded token:", decodedToken);
 
                 // Optionally fetch the user details from the database using the decoded token
                 const existingUser = await User.findById(decodedToken.userId);
