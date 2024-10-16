@@ -2028,27 +2028,32 @@ exports.uploadEMCheckedCsvFile = [
         try {
             const authHeader = req.headers["authorization"];
             if (!authHeader) {
-                return res
-                    .status(401)
-                    .send({ message: "Unauthorized. Token required." });
+                return res.status(401).send({ message: "Unauthorized. Token required." });
             }
 
             const token = authHeader.split(" ")[1];
             if (!token) {
-                return res
-                    .status(401)
-                    .send({ message: "Unauthorized. Token missing." });
+                return res.status(401).send({ message: "Unauthorized. Token missing." });
             }
 
             jwt.verify(token, process.env.JWT_KEY, async(err, decoded) => {
                 if (err) {
-                    return res
-                        .status(401)
-                        .send({ message: "Unauthorized. Invalid token." });
+                    return res.status(401).send({ message: "Unauthorized. Invalid token." });
                 }
 
                 const userId = decoded.userId;
-                await handleFileUploadByEMChecked(req, res, userId);
+                // Ensure a file has been uploaded
+                if (!req.file) {
+                    return res.status(400).send({ message: "No file uploaded." });
+                }
+
+                // Call the service to handle file upload
+                try {
+                    await handleFileUploadByEMChecked(req, res, userId);
+                } catch (error) {
+                    console.error("File upload failed:", error);
+                    res.status(500).send({ message: "File upload failed", error });
+                }
             });
         } catch (error) {
             console.error("Error in token validation:", error);
@@ -2057,7 +2062,7 @@ exports.uploadEMCheckedCsvFile = [
                 error,
             });
         }
-    },
+    }
 ];
 
 async function handleFileUploadByEMChecked(req, res, userId) {
