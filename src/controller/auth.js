@@ -877,32 +877,34 @@ const verifyToken = (req, res, next) => {
 };
 
 exports.uploadCsv = [
-    upload,
+    (req, res, next) => {
+        upload(req, res, function(err) {
+            if (err instanceof multer.MulterError) {
+                return res.status(400).json({ message: 'Multer Error occurred during file upload.' });
+            } else if (err) {
+                return res.status(400).json({ message: err.message });
+            }
+            next(); // Proceed to the next middleware
+        });
+    },
     async(req, res) => {
         try {
             const authHeader = req.headers["authorization"];
             if (!authHeader) {
-                return res
-                    .status(401)
-                    .send({ message: "Unauthorized. Token required." });
+                return res.status(401).send({ message: "Unauthorized. Token required." });
             }
 
             const token = authHeader.split(" ")[1];
             if (!token) {
-                return res
-                    .status(401)
-                    .send({ message: "Unauthorized. Token missing." });
+                return res.status(401).send({ message: "Unauthorized. Token missing." });
             }
 
             jwt.verify(token, process.env.JWT_KEY, async(err, decoded) => {
                 if (err) {
-                    return res
-                        .status(401)
-                        .send({ message: "Unauthorized. Invalid token." });
+                    return res.status(401).send({ message: "Unauthorized. Invalid token." });
                 }
 
                 const userId = decoded.userId;
-                // console.log(userId);
                 await handleFileUpload(req, res, userId);
             });
         } catch (error) {
@@ -924,30 +926,17 @@ async function handleFileUpload(req, res, userId) {
         }
 
         if (!campaignName || !campaignCode) {
-            return res
-                .status(400)
-                .send({ message: "Missing campaign name or campaign code." });
+            return res.status(400).send({ message: "Missing campaign name or campaign code." });
         }
 
         const file = req.file;
-
-        if (!file.filename ||
-            !file.originalname ||
-            !file.mimetype ||
-            !file.size ||
-            !file.path
-        ) {
-            return res.status(400).send({ message: "Incomplete file metadata." });
-        }
 
         let fileContent;
         try {
             fileContent = fs.readFileSync(file.path);
         } catch (readError) {
             console.error("Error reading file content:", readError);
-            return res
-                .status(500)
-                .send({ message: "Error reading file content", error: readError });
+            return res.status(500).send({ message: "Error reading file content", error: readError });
         }
 
         const newFile = new CompanySchema({
