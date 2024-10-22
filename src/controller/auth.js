@@ -379,7 +379,7 @@ exports.verifyOtp = async(req, res) => {
                 role: existingUser.role, // Include username in token payload if needed
             },
             process.env.JWT_KEY, { expiresIn: "1d" }
-        ); // Token expires in 1 day
+        );
 
         // Send success response with token and username
         return res.status(200).send({
