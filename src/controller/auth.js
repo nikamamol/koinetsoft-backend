@@ -465,7 +465,7 @@ exports.viewUserById = async(req, res) => {
     const { id } = req.params;
 
     try {
-        const user = await AccessUser.findById(id).select("-password"); // Exclude password from the response
+        const user = await AccessUser.findById(id); // Exclude password from the response
         if (!user) {
             return res.status(404).send({ message: "User not found" });
         }
