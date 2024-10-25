@@ -13,6 +13,6 @@ const OperationMasterCsvSchema = new mongoose.Schema({
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: false } // Add userId to associate files with users
 }, { timestamps: true }); // Enable timestamps
 
-const OperationMasterFileSchema = mongoose.model("QualityMasterCsvFile", OperationMasterCsvSchema);
+const OperationMasterFileSchema = mongoose.model("OperationMasterCsv", OperationMasterCsvSchema);
 
 module.exports = OperationMasterFileSchema;
