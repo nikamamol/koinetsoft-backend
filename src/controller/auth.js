@@ -1480,6 +1480,28 @@ exports.getCsvFileByIdOperation = [
     },
 ];
 
+
+exports.deleteOperationCsvFileById = [
+    verifyToken, // Middleware for authentication
+    async(req, res) => {
+        try {
+            const { id } = req.params; // Get the ID from the request parameters
+
+            // Find and delete the file by ID
+            const file = await OperationCsvFile.findByIdAndDelete(id);
+
+            if (!file) {
+                return res.status(404).send({ message: "File not found." });
+            }
+
+            res.status(200).send({ message: "File deleted successfully." });
+        } catch (error) {
+            console.error("Error deleting file:", error);
+            res.status(500).send({ message: "Error deleting file", error });
+        }
+    },
+];
+
 // uplod RA Master File
 exports.uploadRaMasterCsvFile = [
     upload, // Expecting a single file with field name 'file'

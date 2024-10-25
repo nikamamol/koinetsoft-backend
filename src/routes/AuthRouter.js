@@ -85,6 +85,7 @@ const {
     getDailyLogins,
     getDailyLogouts,
     saveComment,
+    deleteOperationCsvFileById,
 } = require("../controller/auth");
 
 
@@ -198,6 +199,7 @@ UserAuthRouter.post("/operationCsvFile", uploadOperationCsvFile);
 UserAuthRouter.get("/getCsvDatabyOperation", getCsvFilesByOperation);
 UserAuthRouter.get("/getCsvDatabyOperationAll", getCsvFilesByOperationAll);
 UserAuthRouter.get("/getCsvFileByIdOperation/:id", getCsvFileByIdOperation);
+UserAuthRouter.delete("/deleteOperationCsvFileById/:id", deleteOperationCsvFileById);
 //unwanted Leads
 UserAuthRouter.post("/unwantedLeadsCsvFile", unwantedLeadsCsvFile);
 UserAuthRouter.get("/getCsvFilesByUnwantedLeadsAll", getCsvFilesByUnwantedLeadsAll);
