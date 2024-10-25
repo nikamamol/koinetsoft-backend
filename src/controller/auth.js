@@ -378,7 +378,7 @@ exports.verifyOtp = async(req, res) => {
                 username: existingUser.username, // Include username in token payload if needed
                 role: existingUser.role, // Include username in token payload if needed
             },
-            process.env.JWT_KEY, { expiresIn: "2m" }
+            process.env.JWT_KEY, { expiresIn: "12h" }
         );
 
         // Send success response with token and username
