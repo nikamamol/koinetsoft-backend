@@ -309,8 +309,6 @@ exports.logout = async(req, res) => {
 };
 
 
-
-
 exports.sendOtp = async(req, res) => {
     const { email } = req.body;
 

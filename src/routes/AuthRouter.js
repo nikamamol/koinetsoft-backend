@@ -231,7 +231,10 @@ UserAuthRouter.post(
 );
 UserAuthRouter.get("/getCsvFilesByseppression", getCsvFilesByseppression);
 UserAuthRouter.get("/getSeparationCsvFileById/:id", getSeparationCsvFileById);
-UserAuthRouter.delete("/deleteSeparationCsvFileById/:id", deleteSeparationCsvFileById);
+UserAuthRouter.delete(
+  "/deleteSeparationCsvFileById/:id",
+  deleteSeparationCsvFileById
+);
 // create template
 UserAuthRouter.post("/createTemplate", addTemplate);
 UserAuthRouter.get("/getTemplateData", getTemplates);
