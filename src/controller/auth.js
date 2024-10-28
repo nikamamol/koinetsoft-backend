@@ -27,6 +27,7 @@ const EMCheckedSChema = require("../model/EmailCheckedFiles");
 const UploadMasterEmCheckFile = require("../model/UploadMasterEmCheckFile");
 const OperationMasterFileSchema = require("../model/OperationMasterCsvFile");
 const UnwantedLeads = require("../model/UnwantedLeads");
+const SuppressionOrTalFiles = require("../model/Suppressiontal");
 
 require("dotenv").config();
 
@@ -1596,6 +1597,7 @@ async function handleFileUploadByRaMaster(req, res, userId) {
     }
 }
 
+
 // getRAMaster csv File
 exports.getCsvFilesByRAMasterAll = [
     authenticateToken1,
@@ -2752,6 +2754,174 @@ exports.deleteUnwantedCsvFileById = [
         }
     },
 ];
+
+
+//upload Suppression and tal 
+exports.uploadSuppressionortalCsvFile = [
+    upload, // Expecting a single file with field name 'file'
+    async (req, res) => {
+        try {
+            const authHeader = req.headers["authorization"];
+            if (!authHeader) {
+                return res.status(401).send({ message: "Unauthorized. Token required." });
+            }
+
+            const token = authHeader.split(" ")[1];
+            if (!token) {
+                return res.status(401).send({ message: "Unauthorized. Token missing." });
+            }
+
+            jwt.verify(token, process.env.JWT_KEY, async (err, decoded) => {
+                if (err) {
+                    return res.status(401).send({ message: "Unauthorized. Invalid token." });
+                }
+
+                const userId = decoded.userId;
+                await handleFileUploadSupression(req, res, userId);
+            });
+        } catch (error) {
+            console.error("Error in token validation:", error);
+            res.status(500).send({
+                message: "Internal server error during token validation",
+                error,
+            });
+        }
+    },
+];
+
+async function handleFileUploadSupression(req, res, userId) {
+    try {
+        const { campaignName, campaignCode, suppressionType } = req.body;
+
+        if (!req.file) {
+            return res.status(400).send({ message: "No file uploaded." });
+        }
+
+        if (!campaignName || !campaignCode || !suppressionType) {
+            return res.status(400).send({ message: "Missing campaign name, campaign code, or suppression type." });
+        }
+
+        const file = req.file;
+
+        // Read file content
+        let fileContent;
+        try {
+            fileContent = fs.readFileSync(file.path);
+        } catch (readError) {
+            console.error("Error reading file content:", readError);
+            return res.status(500).send({ message: "Error reading file content", error: readError });
+        }
+
+        // Create a new document in the database
+        const newFile = new SuppressionOrTalFiles({
+            filename: file.filename,
+            originalname: file.originalname,
+            mimetype: file.mimetype,
+            size: file.size,
+            path: file.path,
+            content: fileContent,
+            campaignName,
+            campaignCode,
+            suppressionType, // Store the suppression type here
+            userId,
+        });
+
+        await newFile.save();
+
+        res.status(200).send({
+            message: "File uploaded and stored successfully",
+            file: newFile,
+        });
+    } catch (error) {
+        console.error("Error uploading or storing file:", error);
+        res.status(500).send({
+            message: "Internal server error during file upload or storage",
+            error,
+        });
+    }
+}
+
+
+exports.getCsvFilesByseppression = [
+    
+    async(req, res) => {
+        try {
+            const files = await SuppressionOrTalFiles.find(); // Fetch all files
+
+            res.status(200).send({
+                message: "Files retrieved successfully",
+                files: files, // Ensure 'files' is the key expected by the frontend
+            });
+        } catch (error) {
+            console.error("Error retrieving files:", error);
+            res.status(500).send({ message: "Error retrieving files", error });
+        }
+    },
+];
+
+//sepparation file downnlod
+exports.getSeparationCsvFileById = [
+  
+    async(req, res) => {
+        try {
+            const fileId = req.params.id;
+            const file = await SuppressionOrTalFiles.findById(fileId);
+
+            if (!file) {
+                return res.status(404).send({ message: "File not found." });
+            }
+
+            // Check if the content is stored in the database
+            if (file.content && file.content.length > 0) {
+                res.setHeader("Content-Type", "text/csv");
+                res.setHeader(
+                    "Content-Disposition",
+                    `attachment; filename="${file.filename}"`
+                );
+                return res.send(file.content);
+            }
+
+            // Check if the file path is stored and the file exists on the filesystem
+            if (file.path && fs.existsSync(file.path)) {
+                res.setHeader("Content-Type", "text/csv");
+                res.setHeader(
+                    "Content-Disposition",
+                    `attachment; filename="${file.filename}"`
+                );
+                return fs.createReadStream(file.path).pipe(res);
+            }
+
+            // If neither the content nor the path is available
+            return res.status(404).send({ message: "File content not found." });
+        } catch (error) {
+            console.error("Error retrieving file:", error);
+            return res.status(500).send({ message: "Error retrieving file", error });
+        }
+    },
+];
+
+//delete file
+exports.deleteSeparationCsvFileById = [
+    async(req, res) => {
+        try {
+            const { id } = req.params; // Get the ID from the request parameters
+
+            // Find and delete the file by ID
+            const file = await SuppressionOrTalFiles.findByIdAndDelete(id);
+
+            if (!file) {
+                return res.status(404).send({ message: "File not found." });
+            }
+
+            res.status(200).send({ message: "File deleted successfully." });
+        } catch (error) {
+            console.error("Error deleting file:", error);
+            res.status(500).send({ message: "Error deleting file", error });
+        }
+    },
+];
+
+
 // *********************************************************************************************************
 // create campaign
 
