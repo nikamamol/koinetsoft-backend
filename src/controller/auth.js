@@ -3026,8 +3026,7 @@ exports.getAllCampaigns = async (req, res) => {
 };
 
 exports.updateCampaignById = [
-  uploadCampaign.fields([
-    // Define the fields for file uploads
+  uploadCampaign.fields([ // Define fields for file uploads
     { name: "assets", maxCount: 10 },
     { name: "script", maxCount: 10 },
     { name: "suppression", maxCount: 10 },
@@ -3038,31 +3037,31 @@ exports.updateCampaignById = [
 
   async (req, res) => {
     try {
-      const { id } = req.params;
-      const updateData = {};
+      const { id } = req.params; // Extract campaign ID from params
+      const updateData = {}; // Object to hold data for update
 
       // Function to process files and add content (Buffer) to updateData
       const processFiles = (files) => {
         return files
           ? files.map((file) => ({
-              filename: file.filename, // Filename on server
-              originalname: file.originalname, // Original filename
-              mimetype: file.mimetype, // MIME type
-              size: file.size, // File size
-              path: file.path, // File path on server
-              content: fs.readFileSync(file.path), // File content as Buffer
+              filename: file.filename,
+              originalname: file.originalname,
+              mimetype: file.mimetype,
+              size: file.size,
+              path: file.path,
+              content: fs.readFileSync(file.path), // Store file content as Buffer
             }))
           : [];
       };
 
-      // Function to add new files and their content to the updateData object
+      // Function to add files and their content to updateData object
       const addFilesToUpdateData = (fileType) => {
         if (req.files[fileType]) {
           updateData[fileType] = processFiles(req.files[fileType]);
         }
       };
 
-      // Add files to updateData with their content (Buffer)
+      // Add file data to updateData (assets, script, etc.)
       [
         "assets",
         "script",
@@ -3072,6 +3071,42 @@ exports.updateCampaignById = [
         "abmList",
       ].forEach(addFilesToUpdateData);
 
+      // Add non-file data (from req.body) to updateData
+      const fieldsToUpdate = [
+        "campaignName",
+        "campaignCode",
+        "startDate",
+        "endDate",
+        "campaignType",
+        "campaignNature",
+        "target",
+        "leadPerDay",
+        "voiceLogRequired",
+        "billingDay",
+        "cpl",
+        "supervisor",
+        "supervisorTarget",
+        "template",
+        "revenue",
+        "companySize",
+        "jobTitle",
+        "geo",
+        "industry",
+        "note",
+        "deliveryType",
+        "deliveryDays",
+        "contactsPerCampaign",
+        "abmCpc",
+        "nonAbmCpc",
+        "noOfContacts",
+      ];
+
+      fieldsToUpdate.forEach((field) => {
+        if (req.body[field]) {
+          updateData[field] = req.body[field]; // Update non-file fields
+        }
+      });
+
       // Fetch the existing campaign from the database
       const existingCampaign = await CampaignSchema.findById(id);
 
@@ -3079,21 +3114,18 @@ exports.updateCampaignById = [
         return res.status(404).json({ message: "Campaign not found" });
       }
 
-      // Append the new files to the existing files if they exist
+      // Merge new file data with the existing files data
       Object.keys(updateData).forEach((key) => {
         if (existingCampaign[key]) {
-          updateData[key] = [...existingCampaign[key], ...updateData[key]];
-        } else {
-          updateData[key] = updateData[key];
+          // If the field already contains files or data, append new data
+          updateData[key] = Array.isArray(existingCampaign[key])
+            ? [...existingCampaign[key], ...updateData[key]]
+            : updateData[key];
         }
       });
 
-      // Find and update the campaign with the new file data
-      const updatedCampaign = await CampaignSchema.findByIdAndUpdate(
-        id,
-        updateData,
-        { new: true }
-      );
+      // Find and update the campaign with the new data (both files and non-file)
+      const updatedCampaign = await CampaignSchema.findByIdAndUpdate(id, updateData, { new: true });
 
       if (!updatedCampaign) {
         return res.status(404).json({ message: "Failed to update campaign" });

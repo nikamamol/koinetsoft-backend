@@ -21,7 +21,7 @@ const campaignSchema = new mongoose.Schema({
     mimeType: String,
     size: Number,
     path: String,
-    revenue: [String],
+    revenue: String,
     companySize: Number,
     jobTitle: String,
     geo: String,
@@ -30,6 +30,8 @@ const campaignSchema = new mongoose.Schema({
     abmCpc: String,
     nonAbmCpc: String,
     noOfContacts: Number,
+    deliveryType: String,
+    deliveryDays: String,
     assets: [{
         name: { type: String },
         originalname: { type: String },
