@@ -1371,13 +1371,13 @@ exports.uploadOperationCsvFile = [
 
 async function handleFileUploadByOperation(req, res, userId) {
   try {
-    const { campaignName, campaignCode } = req.body;
+    const { campaignName,clientSelect, campaignCode } = req.body;
 
     if (!req.file) {
       return res.status(400).send({ message: "No file uploaded." });
     }
 
-    if (!campaignName || !campaignCode) {
+    if (!campaignName || !campaignCode || !clientSelect) {
       return res
         .status(400)
         .send({ message: "Missing campaign name or campaign code." });
@@ -1406,6 +1406,7 @@ async function handleFileUploadByOperation(req, res, userId) {
       content: fileContent,
       campaignName,
       campaignCode,
+      clientSelect,
       userId,
     });
 
@@ -2482,13 +2483,13 @@ exports.operationMasterCsvFile = [
 
 async function handleFileUploadByOperationMaster(req, res, userId) {
   try {
-    const { campaignName, campaignCode } = req.body;
+    const { campaignName,clientSelect, campaignCode } = req.body;
 
     if (!req.file) {
       return res.status(400).send({ message: "No file uploaded." });
     }
 
-    if (!campaignName || !campaignCode) {
+    if (!campaignName || !campaignCode || !clientSelect) {
       return res
         .status(400)
         .send({ message: "Missing campaign name or campaign code." });
@@ -2517,6 +2518,7 @@ async function handleFileUploadByOperationMaster(req, res, userId) {
       content: fileContent,
       campaignName,
       campaignCode,
+      clientSelect,
       userId,
     });
 
