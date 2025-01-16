@@ -15,6 +15,8 @@ require("dotenv").config();
 // Enable CORS for all routes
 app.use(cors({
     origin: '*', // replace with your allowed origin
+    // origin: 'http://localhost:5174/', 
+    // 
 }));
 
 
