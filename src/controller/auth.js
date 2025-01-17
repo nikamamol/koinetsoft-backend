@@ -3279,7 +3279,6 @@ exports.deleteInvoiceById = async(req, res) => {
     }
 };
 
-
 exports.saveMessage1 = [upload, async(req, res) => {
     try {
         const userId = req.user ? req.user._id : null; // Get userId from the session

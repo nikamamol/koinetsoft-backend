@@ -3,15 +3,15 @@ const mongoose = require('mongoose');
 const MessageSchema = new mongoose.Schema({
     text: {
         type: String,
-        required: true,
+        required: false,
     },
     sender: {
         type: String,
-        required: true,
+        required: false,
     },
     time: {
         type: String,
-        required: true,
+        required: false,
     },
 }, {
     timestamps: true, // Automatically add createdAt and updatedAt fields
