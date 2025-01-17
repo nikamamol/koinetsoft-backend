@@ -3279,59 +3279,46 @@ exports.deleteInvoiceById = async(req, res) => {
     }
 };
 
-// Assuming user details are available in req.user, set by a session or middleware
+
 exports.saveMessage1 = [upload, async(req, res) => {
     try {
-        // Assuming user details are stored in the session or req.user
         const userId = req.user ? req.user._id : null; // Get userId from the session
+        const { text, sender, time } = req.body;
 
-        // if (!userId) {
-        //     return res.status(401).json({ message: "User not authenticated" });
-        // }
-
-        const { text, sender, time } = req.body; // Extract message details from the request body
-        const file = req.file; // Access the uploaded file from the request (from multer)
-
-        // Create a new message document with user ID and message details
         const message = new Message({
             text,
             sender,
-            time,
+            time: new Date(time),
             userId,
-            file: file ? {
-                filename: file.filename,
-                path: file.path,
-                mimetype: file.mimetype,
-                size: file.size,
+            file: req.file ? {
+                filename: req.file.filename,
+                path: req.file.path,
+                mimetype: req.file.mimetype,
+                size: req.file.size,
             } : null,
         });
 
-        await message.save(); // Save the message (and file if any) to the database
+        await message.save();
+
+        // Emit the saved message to all connected clients using Socket.IO
+        req.app.get('io').emit('newMessage', message);
 
         res.status(201).json({
-            message: "Message saved successfully",
+            message: 'Message saved successfully',
             data: message,
         });
     } catch (error) {
-        res.status(500).json({ message: "Error saving message", error });
+        res.status(500).json({ message: 'Error saving message', error });
     }
 }];
 
 
+
 exports.getAllMessages = async(req, res) => {
     try {
-        const userId = req.user ? req.user._id : null; // Get userId from the session or req.user
-
-        // if (!userId) {
-        //     return res.status(401).json({ message: "User not authenticated" });
-        // }
-
-        // Fetch all messages for the authenticated user (userId)
-        const messages = await Message.find({ userId }); // Fetch messages based on userId
-
-        res.status(200).json(messages); // Send the fetched messages
+        const messages = await Message.find().sort({ createdAt: -1 }); // Get all messages sorted by creation date
+        res.status(200).json(messages);
     } catch (error) {
-        console.error("Error fetching messages: ", error); // Log the error for debugging
-        res.status(500).json({ message: "Error fetching messages", error: error.message });
+        res.status(500).json({ message: 'Error fetching messages', error });
     }
 };
