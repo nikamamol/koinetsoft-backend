@@ -3311,8 +3311,6 @@ exports.saveMessage1 = [upload, async(req, res) => {
     }
 }];
 
-
-
 exports.getAllMessages = async(req, res) => {
     try {
         const messages = await Message.find().sort({ createdAt: -1 }); // Get all messages sorted by creation date
