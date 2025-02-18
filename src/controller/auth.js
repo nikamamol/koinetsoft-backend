@@ -29,6 +29,8 @@ const OperationMasterFileSchema = require("../model/OperationMasterCsvFile");
 const UnwantedLeads = require("../model/UnwantedLeads");
 const SuppressionOrTalFiles = require("../model/Suppressiontal");
 const Message = require("../model/SupportChat");
+const Event = require("../model/Event");
+const RatlSChema = require("../model/UploadraTl");
 
 require("dotenv").config();
 
@@ -993,6 +995,115 @@ async function handleFileUpload(req, res, userId) {
     }
 }
 
+
+
+exports.uploadCsvByTl = [
+    (req, res, next) => {
+        upload(req, res, function(err) {
+            if (err instanceof multer.MulterError) {
+                return res
+                    .status(400)
+                    .json({ message: "Multer Error occurred during file upload." });
+            } else if (err) {
+                return res.status(400).json({ message: err.message });
+            }
+            next(); // Proceed to the next middleware
+        });
+    },
+    async(req, res) => {
+        try {
+            const authHeader = req.headers["authorization"];
+            if (!authHeader) {
+                return res
+                    .status(401)
+                    .send({ message: "Unauthorized. Token required." });
+            }
+
+            const token = authHeader.split(" ")[1];
+            if (!token) {
+                return res
+                    .status(401)
+                    .send({ message: "Unauthorized. Token missing." });
+            }
+
+            jwt.verify(token, process.env.JWT_KEY, async(err, decoded) => {
+                if (err) {
+                    return res
+                        .status(401)
+                        .send({ message: "Unauthorized. Invalid token." });
+                }
+
+                const userId = decoded.userId;
+                await handleFileUploadbyTl(req, res, userId);
+            });
+        } catch (error) {
+            console.error("Error in token validation:", error);
+            res.status(500).send({
+                message: "Internal server error during token validation",
+                error,
+            });
+        }
+    },
+];
+
+async function handleFileUploadbyTl(req, res, userId) {
+    try {
+        const { campaignName, campaignCode } = req.body;
+
+        if (!req.file) {
+            return res.status(400).send({ message: "No file uploaded." });
+        }
+
+        if (!campaignName || !campaignCode) {
+            return res
+                .status(400)
+                .send({ message: "Missing campaign name or campaign code." });
+        }
+
+        const file = req.file;
+
+        let fileContent;
+        try {
+            fileContent = fs.readFileSync(file.path);
+        } catch (readError) {
+            console.error("Error reading file content:", readError);
+            return res
+                .status(500)
+                .send({ message: "Error reading file content", error: readError });
+        }
+
+        const newFile = new RatlSChema({
+            filename: file.filename,
+            originalname: file.originalname,
+            mimetype: file.mimetype,
+            size: file.size,
+            path: file.path,
+            content: fileContent,
+            campaignName,
+            campaignCode,
+            status: [
+                { userType: "Employee", checked: true },
+                { userType: "Quality", checked: false },
+                { userType: "Email Marketing", checked: false },
+            ],
+            userId,
+        });
+
+        await newFile.save();
+
+        res.status(200).send({
+            message: "File uploaded and stored successfully",
+            file: newFile,
+        });
+    } catch (error) {
+        console.error("Error uploading or storing file:", error);
+        res.status(500).send({
+            message: "Internal server error during file upload or storage",
+            error,
+        });
+    }
+}
+
 exports.updateStatus = [
     async(req, res) => {
         try {
@@ -1027,6 +1138,47 @@ exports.updateStatus = [
         }
     },
 ];
+
+
+
+exports.updateStatusTl = async(req, res) => {
+    try {
+        const { id } = req.params;
+        const { status } = req.body;
+
+        if (!Array.isArray(status)) {
+            return res.status(400).send({ message: "Invalid status format. It should be an array." });
+        }
+
+        // Validate each status object
+        for (const item of status) {
+            if (!item.userType || typeof item.checked !== "boolean") {
+                return res.status(400).send({ message: "Each status object must contain 'userType' (string) and 'checked' (boolean)." });
+            }
+        }
+
+        const file = await RatlSChema.findById(id);
+
+        if (!file) {
+            return res.status(404).send({ message: "File not found." });
+        }
+
+        file.status = status; // Update status array
+
+        await file.save();
+
+        res.status(200).send({
+            message: "Status updated successfully",
+            file,
+        });
+    } catch (error) {
+        console.error("Error updating status:", error);
+        res.status(500).send({ message: "Internal server error while updating status", error });
+    }
+};
+
+
+
 
 exports.deleteFile = [
     authenticateToken,
@@ -1236,6 +1388,46 @@ exports.downloadCsvFileById = [
         try {
             const fileId = req.params.id;
             const file = await CompanySchema.findById(fileId);
+
+            if (!file) {
+                return res.status(404).send({ message: "File not found." });
+            }
+
+            // Check if the content is stored in the database
+            if (file.content && file.content.length > 0) {
+                res.setHeader("Content-Type", "text/csv");
+                res.setHeader(
+                    "Content-Disposition",
+                    `attachment; filename="${file.filename}"`
+                );
+                return res.send(file.content);
+            }
+
+            // Check if the file path is stored and the file exists on the filesystem
+            if (file.path && fs.existsSync(file.path)) {
+                res.setHeader("Content-Type", "text/csv");
+                res.setHeader(
+                    "Content-Disposition",
+                    `attachment; filename="${file.filename}"`
+                );
+                return fs.createReadStream(file.path).pipe(res);
+            }
+
+            // If neither the content nor the path is available
+            return res.status(404).send({ message: "File content not found." });
+        } catch (error) {
+            console.error("Error retrieving file:", error);
+            return res.status(500).send({ message: "Error retrieving file", error });
+        }
+    },
+];
+
+exports.downloadCsvFileByIdRa = [
+    verifyToken, // Add token verification middleware if needed
+    async(req, res) => {
+        try {
+            const fileId = req.params.id;
+            const file = await RatlSChema.findById(fileId);
 
             if (!file) {
                 return res.status(404).send({ message: "File not found." });
@@ -1559,6 +1751,186 @@ exports.uploadRaMasterCsvFile = [
         }
     },
 ];
+
+exports.uploadRaTL = [
+    upload, // Expecting a single file with field name 'file'
+    async(req, res) => {
+        try {
+            const authHeader = req.headers["authorization"];
+            if (!authHeader) {
+                return res
+                    .status(401)
+                    .send({ message: "Unauthorized. Token required." });
+            }
+
+            const token = authHeader.split(" ")[1];
+            if (!token) {
+                return res
+                    .status(401)
+                    .send({ message: "Unauthorized. Token missing." });
+            }
+
+            jwt.verify(token, process.env.JWT_KEY, async(err, decoded) => {
+                if (err) {
+                    return res
+                        .status(401)
+                        .send({ message: "Unauthorized. Invalid token." });
+                }
+
+                const userId = decoded.userId;
+                await handleFileUploadByRatl(req, res, userId);
+            });
+        } catch (error) {
+            console.error("Error in token validation:", error);
+            res.status(500).send({
+                message: "Internal server error during token validation",
+                error,
+            });
+        }
+    },
+];
+
+exports.getCsvFilesByRatlAll = [
+    authenticateToken1,
+    async(req, res) => {
+        try {
+            const files = await RatlSChema.find(); // Fetch all files
+
+            if (!files || files.length === 0) {
+                return res.status(404).send({ message: "No files found." });
+            }
+
+            res.status(200).send({
+                message: "Files retrieved successfully",
+                files: files, // Ensure 'files' is the key expected by the frontend
+            });
+        } catch (error) {
+            console.error("Error retrieving files:", error);
+            res.status(500).send({ message: "Error retrieving files", error });
+        }
+    },
+];
+
+exports.getCsvFileByIdtl = [
+    verifyToken, // Add token verification middleware if needed
+    async(req, res) => {
+        try {
+            const fileId = req.params.id;
+            const file = await RatlSChema.findById(fileId);
+
+            if (!file) {
+                return res.status(404).send({ message: "File not found." });
+            }
+
+            // Check if the content is stored in the database
+            if (file.content && file.content.length > 0) {
+                res.setHeader("Content-Type", "text/csv");
+                res.setHeader(
+                    "Content-Disposition",
+                    `attachment; filename="${file.filename}"`
+                );
+                return res.send(file.content);
+            }
+
+            // Check if the file path is stored and the file exists on the filesystem
+            if (file.path && fs.existsSync(file.path)) {
+                res.setHeader("Content-Type", "text/csv");
+                res.setHeader(
+                    "Content-Disposition",
+                    `attachment; filename="${file.filename}"`
+                );
+                return fs.createReadStream(file.path).pipe(res);
+            }
+
+            // If neither the content nor the path is available
+            return res.status(404).send({ message: "File content not found." });
+        } catch (error) {
+            console.error("Error retrieving file:", error);
+            return res.status(500).send({ message: "Error retrieving file", error });
+        }
+    },
+];
+
+exports.deleteRatlCsvFileById = [
+    verifyToken, // Middleware for authentication
+    async(req, res) => {
+        try {
+            const { id } = req.params; // Get the ID from the request parameters
+
+
+            // Find and delete the file by ID
+            const file = await RatlSChema.findByIdAndDelete(id);
+
+            if (!file) {
+                return res.status(404).send({ message: "File not found." });
+            }
+
+            res.status(200).send({ message: "File deleted successfully." });
+        } catch (error) {
+            console.error("Error deleting file:", error);
+            res.status(500).send({ message: "Error deleting file", error });
+        }
+    },
+];
+
+
+
+
+
+async function handleFileUploadByRatl(req, res, userId) {
+    try {
+        const { campaignName, campaignCode } = req.body;
+
+        if (!req.file) {
+            return res.status(400).send({ message: "No file uploaded." });
+        }
+
+        if (!campaignName || !campaignCode) {
+            return res
+                .status(400)
+                .send({ message: "Missing campaign name or campaign code." });
+        }
+
+        const file = req.file;
+
+        // Read file content
+        let fileContent;
+        try {
+            fileContent = fs.readFileSync(file.path);
+        } catch (readError) {
+            console.error("Error reading file content:", readError);
+            return res
+                .status(500)
+                .send({ message: "Error reading file content", error: readError });
+        }
+
+        // Create a new document in the database
+        const newFile = new RatlSChema({
+            filename: file.filename,
+            originalname: file.originalname,
+            mimetype: file.mimetype,
+            size: file.size,
+            path: file.path,
+            content: fileContent,
+            campaignName,
+            campaignCode,
+            userId,
+        });
+
+        await newFile.save();
+
+        res.status(200).send({
+            message: "File uploaded and stored successfully",
+            file: newFile,
+        });
+    } catch (error) {
+        console.error("Error uploading or storing file:", error);
+        res.status(500).send({
+            message: "Internal server error during file upload or storage",
+            error,
+        });
+    }
+}
 
 async function handleFileUploadByRaMaster(req, res, userId) {
     try {
@@ -3311,6 +3683,7 @@ exports.saveMessage1 = [upload, async(req, res) => {
     }
 }];
 
+
 exports.getAllMessages = async(req, res) => {
     try {
         const messages = await Message.find().sort({ createdAt: -1 }); // Get all messages sorted by creation date
@@ -3319,3 +3692,23 @@ exports.getAllMessages = async(req, res) => {
         res.status(500).json({ message: 'Error fetching messages', error });
     }
 };
+
+exports.eventsGet = async(req, res) => {
+    try {
+        const events = await Event.find();
+        res.json(events);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+}
+
+exports.eventsPost = async(req, res) => {
+    try {
+        const { title, start, end, type } = req.body;
+        const newEvent = new Event({ title, start, end, type });
+        await newEvent.save();
+        res.status(201).json(newEvent);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+}

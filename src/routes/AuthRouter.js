@@ -92,6 +92,15 @@ const {
     deleteSeparationCsvFileById,
     getAllMessages,
     saveMessage1,
+    eventsGet,
+    eventsPost,
+    uploadRaTL,
+    getCsvFilesByRatlAll,
+    getCsvFileByIdtl,
+    deleteRatlCsvFileById,
+    uploadCsvByTl,
+    updateStatusTl,
+    downloadCsvFileByIdRa
 } = require("../controller/auth");
 
 const UserAuthRouter = express.Router();
@@ -139,9 +148,19 @@ UserAuthRouter.put("/campaigns/:id", updateCampaignStatus);
 UserAuthRouter.post("/uploadcsv", uploadCsv);
 UserAuthRouter.get("/csvFileData", getCsvByRAFiles);
 UserAuthRouter.get("/csvFileAllData", getCsvFiles);
+UserAuthRouter.post("/uploadratL", uploadCsvByTl);
+UserAuthRouter.get("/getratlcsvfile", getCsvFilesByRatlAll);
+UserAuthRouter.get("/getCsvFileByIdtl/:id", getCsvFileByIdtl);
+UserAuthRouter.delete("/deleteRatlCsvFileById/:id", deleteRatlCsvFileById);
+
+
+
+
 UserAuthRouter.get("/csvFileData/:id", getCsvFileById);
 UserAuthRouter.get("/downloadCsvFileById/:id", downloadCsvFileById);
+UserAuthRouter.get("/downloadCsvFileByIdRa/:id", downloadCsvFileByIdRa);
 UserAuthRouter.put("/updateStatus/:id", updateStatus);
+UserAuthRouter.put("/updateStatus_rl_tl/:id", updateStatusTl);
 UserAuthRouter.delete("/csvFileData/:id", deleteFile);
 UserAuthRouter.get("/readexcel/:id", getExcelFiles);
 UserAuthRouter.put("/updateCsvFileById/:id", updateCsvFileById);
@@ -252,5 +271,10 @@ UserAuthRouter.delete("/deleteInvoiceById/:id", deleteInvoiceById);
 
 UserAuthRouter.post("/message", saveMessage1);
 UserAuthRouter.get("/get_all_message", getAllMessages);
+
+
+// calender
+UserAuthRouter.get("/getevent", eventsGet);
+UserAuthRouter.get("/postevent", eventsPost);
 
 module.exports = UserAuthRouter;

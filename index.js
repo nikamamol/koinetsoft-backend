@@ -24,7 +24,7 @@ const io = socketIo(server, { cors: { origin: '*' } });
 app.use(
     cors({
         origin: "*", // Replace with your allowed origin or specific domain
-        methods: ["GET", "POST"],
+        methods: ["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE"],
     })
 );
 
