@@ -148,7 +148,7 @@ UserAuthRouter.put("/campaigns/:id", updateCampaignStatus);
 UserAuthRouter.post("/uploadcsv", uploadCsv);
 UserAuthRouter.get("/csvFileData", getCsvByRAFiles);
 UserAuthRouter.get("/csvFileAllData", getCsvFiles);
-UserAuthRouter.post("/uploadratL", uploadCsvByTl);
+UserAuthRouter.post("/uploadratl", uploadCsvByTl);
 UserAuthRouter.get("/getratlcsvfile", getCsvFilesByRatlAll);
 UserAuthRouter.get("/getCsvFileByIdtl/:id", getCsvFileByIdtl);
 UserAuthRouter.delete("/deleteRatlCsvFileById/:id", deleteRatlCsvFileById);
