@@ -3693,22 +3693,69 @@ exports.getAllMessages = async(req, res) => {
     }
 };
 
-exports.eventsGet = async(req, res) => {
-    try {
-        const events = await Event.find();
-        res.json(events);
-    } catch (error) {
-        res.status(500).json({ message: error.message });
+{
+    /*}  exports.eventsGet = async(req, res) => {
+        try {
+            const events = await Event.find();
+            res.json(events);
+        } catch (error) {
+            res.status(500).json({ message: error.message });
+        }
     }
+
+    exports.eventsPost = async(req, res) => {
+        try {
+            const { title, start, end, type } = req.body;
+            const newEvent = new Event({ title, start, end, type });
+            await newEvent.save();
+            res.status(201).json(newEvent);
+        } catch (error) {
+            res.status(500).json({ message: error.message });
+        }
+    } 
+    */
 }
 
+
 exports.eventsPost = async(req, res) => {
-    try {
-        const { title, start, end, type } = req.body;
-        const newEvent = new Event({ title, start, end, type });
-        await newEvent.save();
-        res.status(201).json(newEvent);
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
+    const event = new Event(req.body);
+    await event.save();
+    res.status(201).send(event);
 }
+
+exports.eventsGet = async(req, res) => {
+    const events = await Event.find();
+    res.json(events);
+}
+
+exports.eventDelete = async(req, res) => {
+
+    await Event.findByIdAndDelete(req.params.id);
+    res.status(204).send();
+}
+
+exports.eventUpdate = async(req, res) => {
+    const { title, type, start, end } = req.body;
+    try {
+        const updatedEvent = await Event.findByIdAndUpdate(
+            req.params.id, { title, type, start, end }, { new: true }
+        );
+        res.json(updatedEvent);
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to update event' });
+    }
+};
+
+exports.eventGetById = async(req, res) => {
+    const { id } = req.params;
+
+    try {
+        const event = await Event.findById(id);
+        if (!event) {
+            return res.status(404).json({ message: 'Event not found' });
+        }
+        res.status(200).json(event);
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching event details', error: error.message });
+    }
+};

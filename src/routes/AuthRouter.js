@@ -1,5 +1,7 @@
 const express = require("express");
 
+
+
 const {
     signup,
     login,
@@ -100,11 +102,19 @@ const {
     deleteRatlCsvFileById,
     uploadCsvByTl,
     updateStatusTl,
-    downloadCsvFileByIdRa
+    downloadCsvFileByIdRa,
+    eventDelete,
+    eventUpdate,
+    eventGetById
 } = require("../controller/auth");
 
 const UserAuthRouter = express.Router();
 
+UserAuthRouter.post('/createCalendarEvent', eventsPost);
+UserAuthRouter.get('/eventsGet', eventsGet);
+UserAuthRouter.get('/eventsGet/:id', eventGetById);
+UserAuthRouter.delete('/eventDelete/:id', eventDelete);
+UserAuthRouter.put('/eventUpdate/:id', eventUpdate);
 UserAuthRouter.post("/signup", signup);
 UserAuthRouter.post("/login", login);
 UserAuthRouter.post("/logout", logout);
@@ -273,8 +283,6 @@ UserAuthRouter.post("/message", saveMessage1);
 UserAuthRouter.get("/get_all_message", getAllMessages);
 
 
-// calender
-UserAuthRouter.get("/getevent", eventsGet);
-UserAuthRouter.get("/postevent", eventsPost);
+
 
 module.exports = UserAuthRouter;
